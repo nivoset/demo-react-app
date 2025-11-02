@@ -140,11 +140,17 @@ export function PaymentsOpsDashboard() {
         </div>
 
         {/* Floating Feature Flags Button & Panel */}
-        <div className="fixed bottom-6 right-6 z-50">
-          {/* Floating Button - Always visible */}
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
+          {/* Feature Flags Panel */}
+          <FeatureFlagsPanel 
+            isOpen={showFeatureFlagsPanel} 
+            onClose={() => setShowFeatureFlagsPanel(false)} 
+          />
+          
+          {/* Floating Button - Always visible, positioned after panel in DOM to ensure it's on top */}
           <button
             onClick={() => setShowFeatureFlagsPanel(!showFeatureFlagsPanel)}
-            className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all ${
+            className={`relative z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all ${
               showFeatureFlagsPanel
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300'
@@ -171,12 +177,6 @@ export function PaymentsOpsDashboard() {
               />
             </svg>
           </button>
-
-          {/* Feature Flags Panel */}
-          <FeatureFlagsPanel 
-            isOpen={showFeatureFlagsPanel} 
-            onClose={() => setShowFeatureFlagsPanel(false)} 
-          />
         </div>
 
         {/* Dynamic Layout Based on View */}

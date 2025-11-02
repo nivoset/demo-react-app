@@ -22,7 +22,7 @@ export function FeatureFlagsPanel({ isOpen, onClose }: FeatureFlagsPanelProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="absolute bottom-16 right-0 w-max bg-white rounded-lg shadow-2xl border-2 border-gray-200 p-6 max-h-[80vh] overflow-y-auto">
+    <div className="w-max bg-white rounded-lg shadow-2xl border-2 border-gray-200 p-6 max-h-[80vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-gray-900">Feature Flags</h2>
         <button

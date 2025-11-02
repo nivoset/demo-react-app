@@ -19,7 +19,7 @@ export function PaymentsOpsDashboard() {
     dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     dateTo: new Date().toISOString().split('T')[0],
   });
-  const [showComponentOutlines, setShowComponentOutlines] = useState(false);
+  const [showComponentOutlines, setShowComponentOutlines] = useState(true);
   
   const { kycVersion, setKycVersion } = useFeatureFlags();
   const kycEngine = useKycEngine();
@@ -77,8 +77,6 @@ export function PaymentsOpsDashboard() {
 
   return (
     <div 
-      data-component="PaymentsOpsDashboard" 
-      data-business-logic="kycRules.v1,kycRules.v2,useKycEngine" 
       className={`min-h-screen bg-gray-50 p-6 ${showComponentOutlines ? 'show-component-outlines' : ''}`}
     >
       <div className="max-w-7xl mx-auto">

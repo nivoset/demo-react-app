@@ -53,7 +53,7 @@ export function TransactionsTable({ transactions, isLoading }: TransactionsTable
 
   if (isLoading) {
     return (
-      <div data-component="TransactionsTable" className="p-6 bg-white rounded-lg border border-gray-200">
+      <div className="p-6 bg-white rounded-lg border border-gray-200" data-component="TransactionsTable">
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-2 text-gray-500">Loading transactions...</p>
@@ -64,7 +64,7 @@ export function TransactionsTable({ transactions, isLoading }: TransactionsTable
 
   if (transactions.length === 0) {
     return (
-      <div data-component="TransactionsTable" className="p-6 bg-white rounded-lg border border-gray-200">
+      <div className="p-6 bg-white rounded-lg border border-gray-200" data-component="TransactionsTable">
         <h3 className="text-lg font-semibold mb-4 text-gray-400">Transactions</h3>
         <p className="text-gray-400 text-center py-8">No transactions found</p>
       </div>
@@ -72,7 +72,7 @@ export function TransactionsTable({ transactions, isLoading }: TransactionsTable
   }
 
   return (
-    <div data-component="TransactionsTable" className="p-6 bg-white rounded-lg border border-gray-200">
+    <div className="p-6 bg-white rounded-lg border border-gray-200" data-component="TransactionsTable">
       <h3 className="text-lg font-semibold mb-4">Transactions</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-left">

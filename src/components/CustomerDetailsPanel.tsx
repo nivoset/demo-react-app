@@ -29,7 +29,7 @@ export function CustomerDetailsPanel({
 
   if (!customer) {
     return (
-      <div data-component="CustomerDetailsPanel" className="p-6 bg-white rounded-lg border border-gray-200">
+      <div className="p-6 bg-white rounded-lg border border-gray-200">
         <h3 className="text-lg font-semibold mb-4 text-gray-500">KYC Decision</h3>
         <p className="text-gray-400">Select a customer to view KYC decision</p>
       </div>
@@ -79,7 +79,6 @@ export function CustomerDetailsPanel({
 
   return (
     <div 
-      data-component="CustomerDetailsPanel" 
       className={`p-6 rounded-lg border-2 transition-colors ${versionStyles}`}
     >
       <div className="flex items-center justify-between mb-4">

@@ -37,7 +37,6 @@ export function KycDecisionBadge({ decision }: KycDecisionBadgeProps) {
 
   return (
     <span
-      data-component="KycDecisionBadge"
       className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${getBadgeStyles(
         decision
       )}`}

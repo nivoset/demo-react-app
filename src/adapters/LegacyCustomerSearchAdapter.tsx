@@ -40,7 +40,7 @@ export function CustomerSearch({ onCustomerSelect }: CustomerSearchProps) {
   }, [onCustomerSelect]);
 
   return (
-    <div ref={containerRef} data-business-logic="CustomerSearch" data-component="CustomerSearch">
+    <div ref={containerRef}>
       <div className="p-6 bg-white rounded-lg border border-gray-200">
         <h2 className="text-lg font-semibold mb-4">Customer Search (Embedded)</h2>
         <LegacyCustomerSearch />

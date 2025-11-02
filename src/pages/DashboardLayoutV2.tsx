@@ -36,7 +36,7 @@ export function DashboardLayoutV2({
   onKycActionComplete,
 }: DashboardLayoutV2Props) {
   return (
-    <div data-component="DashboardLayoutV2" className="p-4">
+    <div className="p-4">
       {/* Top Section: Customer Search and Filters side-by-side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div>

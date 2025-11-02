@@ -35,7 +35,7 @@ export function DashboardLayoutV1({
   onKycActionComplete,
 }: DashboardLayoutV1Props) {
   return (
-    <div data-component="DashboardLayoutV1" className="p-4">
+    <div className="p-4">
       {/* Filter Panel */}
       <FilterPanel
         onSubmit={onFilterSubmit}

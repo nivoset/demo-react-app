@@ -1,5 +1,5 @@
-import { CustomerSearch } from '../adapters/LegacyCustomerSearchAdapter';
-import type { Customer } from '../adapters/LegacyCustomerSearch';
+import { CustomerSearch } from '../components/CustomerSearch';
+import type { Customer } from '../legacy/LegacyCustomerSearch';
 import { FilterPanel, type FilterFormData } from '../components/FilterPanel';
 import { TransactionsTable } from '../components/TransactionsTable';
 import { CustomerDetailsPanel } from '../components/CustomerDetailsPanel';

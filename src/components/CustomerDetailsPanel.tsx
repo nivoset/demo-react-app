@@ -1,6 +1,6 @@
 import { KycDecisionBadge } from './KycDecisionBadge';
 import type { KycResult } from '../logic/kycRules.v1';
-import type { Customer } from '../adapters/LegacyCustomerSearch';
+import type { Customer } from '../legacy/LegacyCustomerSearch';
 
 interface CustomerDetailsPanelProps {
   customer: Customer | null;

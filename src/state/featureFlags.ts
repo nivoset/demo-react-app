@@ -14,7 +14,7 @@ export const useFeatureFlags = create<FeatureFlags>()(
   persist(
     (set) => ({
       kycVersion: 'v1',
-      view: 'view1',
+      view: 'view2',
       showComponentOutlines: false,
       setKycVersion: (version) => set({ kycVersion: version }),
       setView: (view) => set({ view }),

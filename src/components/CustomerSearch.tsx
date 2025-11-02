@@ -1,19 +1,27 @@
 import { useEffect, useRef } from 'react';
-import { LegacyCustomerSearch, type Customer } from './LegacyCustomerSearch';
+import { LegacyCustomerSearch, type Customer } from '../legacy/LegacyCustomerSearch';
 
 interface CustomerSearchProps {
   onCustomerSelect: (customer: Customer) => void;
 }
 
 /**
- * Customer Search - Business Logic Wrapper
+ * Customer Search - Reusable Component with Minimal Business Logic
  * 
  * This component wraps the embedded legacy customer search and converts
  * its event-based communication to modern React callback patterns.
- * This demonstrates how to:
- * 1. Isolate legacy components that use event-based communication
- * 2. Bridge between legacy event system and modern React patterns
- * 3. Keep business logic separate from the legacy component itself
+ * 
+ * Located in /components (despite having business logic) because:
+ * - It's a reusable utility that other parts of the app can use
+ * - The business logic is minimal (event bridging) and self-contained
+ * - It provides a clean API that hides the legacy implementation details
+ * - Organizational clarity: developers know "this is a component I can use"
+ * 
+ * This demonstrates:
+ * 1. Isolating legacy components that use event-based communication
+ * 2. Bridging between legacy event system and modern React patterns
+ * 3. Practical organization: sometimes reusable utilities with minimal logic
+ *    belong in components for discoverability and ease of use
  */
 export function CustomerSearch({ onCustomerSelect }: CustomerSearchProps) {
   const containerRef = useRef<HTMLDivElement>(null);

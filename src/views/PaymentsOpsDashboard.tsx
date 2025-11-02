@@ -11,8 +11,8 @@ import {
   holdKycDecision,
   type TransactionFilters,
 } from '../api/transactionsApi';
-import { DashboardLayoutV1 } from '../views/DashboardLayoutV1';
-import { DashboardLayoutV2 } from '../views/DashboardLayoutV2';
+import { DashboardLayoutV1 } from './DashboardLayoutV1';
+import { DashboardLayoutV2 } from './DashboardLayoutV2';
 import { FeatureFlagsPanel } from '../components/FeatureFlagsPanel';
 
 /**

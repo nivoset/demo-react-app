@@ -86,19 +86,26 @@ body[data-business-logic] {
   z-index: 0;
 }
 
+/* Exclude elements with data-no-highlights from outline styling */
+[data-no-highlights],
+[data-no-highlights]::before,
+[data-no-highlights]::after {
+  box-shadow: none !important;
+}
+
 /* Common styles for both pseudo-elements */
-[data-component]::before,
-[data-business-logic]::before,
-[data-component]::after,
-[data-business-logic]::after,
-html[data-component]::before,
-html[data-business-logic]::before,
-html[data-component]::after,
-html[data-business-logic]::after,
-body[data-component]::before,
-body[data-business-logic]::before,
-body[data-component]::after,
-body[data-business-logic]::after {
+[data-component]:not([data-no-highlights])::before,
+[data-business-logic]:not([data-no-highlights])::before,
+[data-component]:not([data-no-highlights])::after,
+[data-business-logic]:not([data-no-highlights])::after,
+html[data-component]:not([data-no-highlights])::before,
+html[data-business-logic]:not([data-no-highlights])::before,
+html[data-component]:not([data-no-highlights])::after,
+html[data-business-logic]:not([data-no-highlights])::after,
+body[data-component]:not([data-no-highlights])::before,
+body[data-business-logic]:not([data-no-highlights])::before,
+body[data-component]:not([data-no-highlights])::after,
+body[data-business-logic]:not([data-no-highlights])::after {
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -115,28 +122,28 @@ body[data-business-logic]::after {
 
 }
 /* Only green — before pseudo */
-[data-component]:not([data-business-logic])::before,
-html[data-component]:not([data-business-logic])::before,
-body[data-component]:not([data-business-logic])::before {
+[data-component]:not([data-business-logic]):not([data-no-highlights])::before,
+html[data-component]:not([data-business-logic]):not([data-no-highlights])::before,
+body[data-component]:not([data-business-logic]):not([data-no-highlights])::before {
   box-shadow: inset 0 0 0 var(--ring-pink-size) var(--ring-green);
 }
 
 /* Only pink — after pseudo */
-[data-business-logic]:not([data-component])::after,
-html[data-business-logic]:not([data-component])::after,
-body[data-business-logic]:not([data-component])::after {
+[data-business-logic]:not([data-component]):not([data-no-highlights])::after,
+html[data-business-logic]:not([data-component]):not([data-no-highlights])::after,
+body[data-business-logic]:not([data-component]):not([data-no-highlights])::after {
   box-shadow: inset 0 0 0 var(--ring-pink-size) var(--ring-pink);
 }
 
 /* Both: green via ::before, pink via ::after */
-[data-component][data-business-logic]::before,
-html[data-component][data-business-logic]::before,
-body[data-component][data-business-logic]::before {
+[data-component][data-business-logic]:not([data-no-highlights])::before,
+html[data-component][data-business-logic]:not([data-no-highlights])::before,
+body[data-component][data-business-logic]:not([data-no-highlights])::before {
   box-shadow: inset 0 0 0 var(--ring-green-size) var(--ring-green);
 }
 
-[data-component][data-business-logic]::after,
-html[data-component][data-business-logic]::after,
-body[data-component][data-business-logic]::after {
+[data-component][data-business-logic]:not([data-no-highlights])::after,
+html[data-component][data-business-logic]:not([data-no-highlights])::after,
+body[data-component][data-business-logic]:not([data-no-highlights])::after {
   box-shadow: inset 0 0 0 var(--ring-pink-size) var(--ring-pink);
 }

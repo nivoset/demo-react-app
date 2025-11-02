@@ -9,18 +9,21 @@ export interface Customer {
   sanctionsList?: boolean;
 }
 
-interface LegacyCustomerSearchProps {
-  // No direct props - legacy component only dispatches events
-}
-
 /**
  * Legacy Customer Search Component
  * This component dispatches custom events instead of using direct callbacks.
  * This matches how legacy web components or micro-frontends typically work.
- * In a real scenario, this would embed an actual web component or iframe.
- * For this demo, we'll simulate the legacy component with React.
+ * 
+ * In a real scenario:
+ * - This would embed an actual legacy application, possibly via single-spa or similar
+ *   micro-frontend framework
+ * - The legacy app would be mounted/rendered within this container
+ * - Integration would handle lifecycle methods (mount, unmount, update) from the framework
+ * - Event communication would bridge between the legacy system and modern React app
+ * 
+ * For this demo, we simulate the legacy component's behavior with React.
  */
-export function LegacyCustomerSearch(_props: LegacyCustomerSearchProps = {}) {
+export function LegacyCustomerSearch() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [customers] = useState<Customer[]>([
@@ -119,7 +122,7 @@ export function LegacyCustomerSearch(_props: LegacyCustomerSearchProps = {}) {
   // and listen for its custom events. For demo purposes, we create a React UI
   // that simulates the legacy component's behavior.
   return (
-    <div ref={containerRef} data-component="LegacyCustomerSearch" className="legacy-customer-search p-4 bg-[#C0C0C0] border-2 border-t-white border-l-white border-r-gray-600 border-b-gray-600 shadow-[inset_1px_1px_0_#808080,inset_-1px_-1px_0_#ffffff]">
+    <div ref={containerRef} data-component="LegacyCustomerSearch" data-no-highlights className="legacy-customer-search p-4 bg-[#C0C0C0] border-2 border-t-white border-l-white border-r-gray-600 border-b-gray-600 shadow-[inset_1px_1px_0_#808080,inset_-1px_-1px_0_#ffffff]">
       {/* 90's Windows-style title bar */}
       <div className="bg-[#000080] text-white px-2 py-1 mb-3 font-bold text-sm flex items-center">
         <span className="mr-2">🔍</span>

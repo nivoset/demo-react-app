@@ -11,6 +11,13 @@ interface CustomerSearchProps {
  * This component wraps the embedded legacy customer search and converts
  * its event-based communication to modern React callback patterns.
  * 
+ * In a real implementation:
+ * - Would integrate with micro-frontend frameworks like single-spa to mount/unmount
+ *   the legacy application within the container
+ * - Would handle lifecycle methods (mount, unmount, update) from the framework
+ * - Would coordinate between the legacy app's lifecycle and React's lifecycle
+ * - The event bridging logic here demonstrates how you'd connect the systems
+ * 
  * Located in /components (despite having business logic) because:
  * - It's a reusable utility that other parts of the app can use
  * - The business logic is minimal (event bridging) and self-contained
@@ -48,7 +55,7 @@ export function CustomerSearch({ onCustomerSelect }: CustomerSearchProps) {
   }, [onCustomerSelect]);
 
   return (
-    <div ref={containerRef}>
+    <div ref={containerRef} data-business-logic="CustomerSearch">
       <LegacyCustomerSearch />
     </div>
   );

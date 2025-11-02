@@ -7,35 +7,68 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Component and Business Logic Outline Styles */
-.show-component-outlines [data-component]:not([data-business-logic]),
-.show-component-outlines[data-component]:not([data-business-logic]) {
-  outline: 3px solid rgb(34, 197, 94) !important; /* green-500 */
-  outline-offset: -3px;
-  box-shadow: 
-    inset 0 0 0 2px rgba(34, 197, 94, 0.3),
-    0 2px 4px rgba(34, 197, 94, 0.2) !important;
+:root {
+  --ring-green: green;
+  --ring-pink: hotpink;
+  --ring-green-size: 10px;
+  --ring-pink-size: 4px;
 }
 
-.show-component-outlines [data-business-logic]:not([data-component]),
-.show-component-outlines[data-business-logic]:not([data-component]) {
-  outline: 3px solid rgb(236, 72, 153) !important; /* pink-500 */
-  outline-offset: -3px;
-  box-shadow: 
-    inset 0 0 0 2px rgba(236, 72, 153, 0.3),
-    0 2px 4px rgba(236, 72, 153, 0.2) !important;
-}
-
-/* When both attributes exist, show both outlines with distinct layers */
-.show-component-outlines [data-component][data-business-logic],
-.show-component-outlines[data-component][data-business-logic] {
+/* Targeted Elements + Page */
+[data-component],
+[data-business-logic],
+html[data-component],
+html[data-business-logic],
+body[data-component],
+body[data-business-logic] {
   position: relative;
-  outline: 3px solid rgb(236, 72, 153) !important; /* pink outer */
-  outline-offset: -3px;
-  box-shadow: 
-    0 0 0 6px rgba(236, 72, 153, 0.7), /* pink outer ring */
-    inset 0 0 0 4px rgb(34, 197, 94), /* green inner outline - thicker */
-    inset 0 0 0 7px rgba(34, 197, 94, 0.4), /* green inner glow - more inset */
-    0 2px 4px rgba(34, 197, 94, 0.3),
-    0 2px 4px rgba(236, 72, 153, 0.3) !important;
+  z-index: 0;
+}
+
+/* Common styles for both pseudo-elements */
+[data-component]::before,
+[data-business-logic]::before,
+[data-component]::after,
+[data-business-logic]::after,
+html[data-component]::before,
+html[data-business-logic]::before,
+html[data-component]::after,
+html[data-business-logic]::after,
+body[data-component]::before,
+body[data-business-logic]::before,
+body[data-component]::after,
+body[data-business-logic]::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 9999;
+}
+
+/* Only green — before pseudo */
+[data-component]:not([data-business-logic])::before,
+html[data-component]:not([data-business-logic])::before,
+body[data-component]:not([data-business-logic])::before {
+  box-shadow: inset 0 0 0 var(--ring-pink-size) var(--ring-green);
+}
+
+/* Only pink — after pseudo */
+[data-business-logic]:not([data-component])::after,
+html[data-business-logic]:not([data-component])::after,
+body[data-business-logic]:not([data-component])::after {
+  box-shadow: inset 0 0 0 var(--ring-pink-size) var(--ring-pink);
+}
+
+/* Both: green via ::before, pink via ::after */
+[data-component][data-business-logic]::before,
+html[data-component][data-business-logic]::before,
+body[data-component][data-business-logic]::before {
+  box-shadow: inset 0 0 0 var(--ring-green-size) var(--ring-green);
+}
+
+[data-component][data-business-logic]::after,
+html[data-component][data-business-logic]::after,
+body[data-component][data-business-logic]::after {
+  box-shadow: inset 0 0 0 var(--ring-pink-size) var(--ring-pink);
 }

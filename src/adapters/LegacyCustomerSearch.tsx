@@ -10,15 +10,17 @@ export interface Customer {
 }
 
 interface LegacyCustomerSearchProps {
-  onCustomerSelect: (customer: Customer) => void;
+  // No direct props - legacy component only dispatches events
 }
 
 /**
- * Adapter component that wraps a legacy customer search micro-frontend.
+ * Legacy Customer Search Component
+ * This component dispatches custom events instead of using direct callbacks.
+ * This matches how legacy web components or micro-frontends typically work.
  * In a real scenario, this would embed an actual web component or iframe.
  * For this demo, we'll simulate the legacy component with React.
  */
-export function LegacyCustomerSearch({ onCustomerSelect }: LegacyCustomerSearchProps) {
+export function LegacyCustomerSearch(_props: LegacyCustomerSearchProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [customers] = useState<Customer[]>([
@@ -68,8 +70,15 @@ export function LegacyCustomerSearch({ onCustomerSelect }: LegacyCustomerSearchP
 
   const handleCustomerClick = (customer: Customer) => {
     setSelectedCustomerId(customer.id);
-    // Simulate legacy component event emission
-    onCustomerSelect(customer);
+    // Legacy component dispatches custom events instead of calling callbacks
+    const event = new CustomEvent('customer:select', {
+      detail: customer,
+      bubbles: true,
+      cancelable: true,
+    });
+    if (containerRef.current) {
+      containerRef.current.dispatchEvent(event);
+    }
   };
 
   // In a real implementation, this would embed the actual legacy web component

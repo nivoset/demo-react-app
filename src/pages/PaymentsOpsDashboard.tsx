@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { LegacyCustomerSearch, type Customer } from '../adapters/LegacyCustomerSearch';
+import { CustomerSearch } from '../adapters/LegacyCustomerSearchAdapter';
+import type { Customer } from '../adapters/LegacyCustomerSearch';
 import { FilterPanel, type FilterFormData } from '../components/FilterPanel';
 import { TransactionsTable } from '../components/TransactionsTable';
 import { CustomerDetailsPanel } from '../components/CustomerDetailsPanel';
@@ -151,10 +152,7 @@ export function PaymentsOpsDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Panel: Customer Search (Legacy) */}
           <div className="lg:col-span-1">
-            <div className="p-6 bg-white rounded-lg border border-gray-200">
-              <h2 className="text-lg font-semibold mb-4">Customer Search (Embedded)</h2>
-              <LegacyCustomerSearch onCustomerSelect={handleCustomerSelect} />
-            </div>
+            <CustomerSearch onCustomerSelect={handleCustomerSelect} />
           </div>
 
           {/* Middle Panel: Transactions */}

@@ -4,9 +4,16 @@ import type { Customer } from '../adapters/LegacyCustomerSearch';
 import type { FilterFormData } from '../components/FilterPanel';
 import { useKycEngine } from '../logic/useKycEngine';
 import { useFeatureFlags } from '../state/featureFlags';
-import { fetchTransactions, type TransactionFilters } from '../api/transactionsApi';
+import {
+  fetchTransactions,
+  approveKycDecision,
+  requestKycDocuments,
+  holdKycDecision,
+  type TransactionFilters,
+} from '../api/transactionsApi';
 import { DashboardLayoutV1 } from './DashboardLayoutV1';
 import { DashboardLayoutV2 } from './DashboardLayoutV2';
+import { FeatureFlagsPanel } from '../components/FeatureFlagsPanel';
 
 /**
  * Main Dashboard Page
@@ -19,9 +26,14 @@ export function PaymentsOpsDashboard() {
     dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     dateTo: new Date().toISOString().split('T')[0],
   });
-  const [showComponentOutlines, setShowComponentOutlines] = useState(true);
+  const [isProcessingKycAction, setIsProcessingKycAction] = useState(false);
+  const [showFeatureFlagsPanel, setShowFeatureFlagsPanel] = useState(false);
   
-  const { kycVersion, setKycVersion } = useFeatureFlags();
+  const { 
+    kycVersion,
+    view, 
+    showComponentOutlines,
+  } = useFeatureFlags();
   const kycEngine = useKycEngine();
 
   // Evaluate KYC decision when customer is selected
@@ -75,74 +87,100 @@ export function PaymentsOpsDashboard() {
     refetchTransactions();
   };
 
+  // Handle KYC actions - all business logic at page level
+  const handleApproveKyc = async () => {
+    if (!selectedCustomer) return;
+    setIsProcessingKycAction(true);
+    try {
+      await approveKycDecision(selectedCustomer.id);
+      handleKycActionComplete();
+    } catch (error) {
+      console.error('Failed to approve KYC decision:', error);
+    } finally {
+      setIsProcessingKycAction(false);
+    }
+  };
+
+  const handleRequestKycDocuments = async () => {
+    if (!selectedCustomer) return;
+    setIsProcessingKycAction(true);
+    try {
+      await requestKycDocuments(selectedCustomer.id);
+      handleKycActionComplete();
+    } catch (error) {
+      console.error('Failed to request documents:', error);
+    } finally {
+      setIsProcessingKycAction(false);
+    }
+  };
+
+  const handleHoldKyc = async () => {
+    if (!selectedCustomer) return;
+    setIsProcessingKycAction(true);
+    try {
+      await holdKycDecision(selectedCustomer.id);
+      handleKycActionComplete();
+    } catch (error) {
+      console.error('Failed to hold KYC decision:', error);
+    } finally {
+      setIsProcessingKycAction(false);
+    }
+  };
+
   return (
     <div 
       className={`min-h-screen bg-gray-50 p-6 ${showComponentOutlines ? 'show-component-outlines' : ''}`}
     >
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6 relative">
-          <div className="absolute top-0 right-0">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <span className="text-sm text-gray-600">Show Component Outlines</span>
-              <button
-                onClick={() => setShowComponentOutlines(!showComponentOutlines)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  showComponentOutlines ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    showComponentOutlines ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </label>
-          </div>
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Payments Operations Dashboard
           </h1>
-          
-          {/* Feature Flag Toggle */}
-          <div className="flex items-center gap-4 mb-4 p-4 bg-white rounded-lg border-2 border-gray-200">
-            <span className="text-sm font-semibold text-gray-700">KYC Engine Version:</span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setKycVersion('v1')}
-                className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${
-                  kycVersion === 'v1'
-                    ? 'bg-blue-600 text-white shadow-lg scale-105 ring-2 ring-blue-300'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                v1
-              </button>
-              <button
-                onClick={() => setKycVersion('v2')}
-                className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${
-                  kycVersion === 'v2'
-                    ? 'bg-purple-600 text-white shadow-lg scale-105 ring-2 ring-purple-300'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                v2
-              </button>
-            </div>
-            <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-              kycVersion === 'v1' 
-                ? 'bg-blue-100 text-blue-800 border border-blue-300' 
-                : 'bg-purple-100 text-purple-800 border border-purple-300'
-            }`}>
-              Active: {kycVersion.toUpperCase()}
-            </div>
-            <span className="text-xs text-gray-500 ml-auto">
-              (Toggle to see how logic changes affect decision)
-            </span>
-          </div>
         </div>
 
-        {/* Dynamic Layout Based on Version */}
-        {kycVersion === 'v1' ? (
+        {/* Floating Feature Flags Button & Panel */}
+        <div className="fixed bottom-6 right-6 z-50">
+          {/* Floating Button */}
+          <button
+            onClick={() => setShowFeatureFlagsPanel(!showFeatureFlagsPanel)}
+            className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all ${
+              showFeatureFlagsPanel
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300'
+            }`}
+            title="Feature Flags"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          </button>
+
+          {/* Feature Flags Panel */}
+          <FeatureFlagsPanel 
+            isOpen={showFeatureFlagsPanel} 
+            onClose={() => setShowFeatureFlagsPanel(false)} 
+          />
+        </div>
+
+        {/* Dynamic Layout Based on View */}
+        {view === 'view1' ? (
           <DashboardLayoutV1
             selectedCustomer={selectedCustomer}
             kycResult={kycResult}
@@ -150,9 +188,12 @@ export function PaymentsOpsDashboard() {
             transactions={transactionsData?.transactions || []}
             isLoadingTransactions={isLoadingTransactions}
             filters={filters}
+            isProcessingKycAction={isProcessingKycAction}
             onCustomerSelect={handleCustomerSelect}
             onFilterSubmit={handleFilterSubmit}
-            onKycActionComplete={handleKycActionComplete}
+            onApproveKyc={handleApproveKyc}
+            onRequestKycDocuments={handleRequestKycDocuments}
+            onHoldKyc={handleHoldKyc}
           />
         ) : (
           <DashboardLayoutV2
@@ -162,9 +203,12 @@ export function PaymentsOpsDashboard() {
             transactions={transactionsData?.transactions || []}
             isLoadingTransactions={isLoadingTransactions}
             filters={filters}
+            isProcessingKycAction={isProcessingKycAction}
             onCustomerSelect={handleCustomerSelect}
             onFilterSubmit={handleFilterSubmit}
-            onKycActionComplete={handleKycActionComplete}
+            onApproveKyc={handleApproveKyc}
+            onRequestKycDocuments={handleRequestKycDocuments}
+            onHoldKyc={handleHoldKyc}
           />
         )}
       </div>

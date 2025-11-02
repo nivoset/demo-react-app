@@ -1,32 +1,30 @@
-import { useState } from 'react';
 import { KycDecisionBadge } from './KycDecisionBadge';
 import type { KycResult } from '../logic/kycRules.v1';
 import type { Customer } from '../adapters/LegacyCustomerSearch';
-import {
-  approveKycDecision,
-  requestKycDocuments,
-  holdKycDecision,
-} from '../api/transactionsApi';
 
 interface CustomerDetailsPanelProps {
   customer: Customer | null;
   kycResult: KycResult | null;
   kycVersion: 'v1' | 'v2';
-  onActionComplete?: () => void;
+  isProcessing?: boolean;
+  onApprove?: () => void;
+  onRequestDocs?: () => void;
+  onHold?: () => void;
 }
 
 /**
  * UI Component: Displays customer details and KYC decision with action buttons
- * Handles user interactions and triggers API calls
+ * Pure presentation component - all business logic handled at page level
  */
 export function CustomerDetailsPanel({
   customer,
   kycResult,
   kycVersion,
-  onActionComplete,
+  isProcessing = false,
+  onApprove,
+  onRequestDocs,
+  onHold,
 }: CustomerDetailsPanelProps) {
-  const [isProcessing, setIsProcessing] = useState(false);
-
   if (!customer) {
     return (
       <div className="p-6 bg-white rounded-lg border border-gray-200">
@@ -35,42 +33,6 @@ export function CustomerDetailsPanel({
       </div>
     );
   }
-
-  const handleApprove = async () => {
-    setIsProcessing(true);
-    try {
-      await approveKycDecision(customer.id);
-      onActionComplete?.();
-    } catch (error) {
-      console.error('Failed to approve KYC decision:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleRequestDocs = async () => {
-    setIsProcessing(true);
-    try {
-      await requestKycDocuments(customer.id);
-      onActionComplete?.();
-    } catch (error) {
-      console.error('Failed to request documents:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleHold = async () => {
-    setIsProcessing(true);
-    try {
-      await holdKycDecision(customer.id);
-      onActionComplete?.();
-    } catch (error) {
-      console.error('Failed to hold KYC decision:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   // Visual styling based on KYC version
   const versionStyles = kycVersion === 'v1' 
@@ -119,21 +81,21 @@ export function CustomerDetailsPanel({
         <div className="pt-4 border-t border-gray-200">
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={handleApprove}
+              onClick={onApprove}
               disabled={isProcessing}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
             >
               Approve
             </button>
             <button
-              onClick={handleRequestDocs}
+              onClick={onRequestDocs}
               disabled={isProcessing}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
             >
               Request Docs
             </button>
             <button
-              onClick={handleHold}
+              onClick={onHold}
               disabled={isProcessing}
               className="col-span-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
             >

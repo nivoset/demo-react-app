@@ -14,9 +14,12 @@ interface DashboardLayoutV2Props {
   transactions: Transaction[];
   isLoadingTransactions: boolean;
   filters: TransactionFilters;
+  isProcessingKycAction: boolean;
   onCustomerSelect: (customer: Customer) => void;
   onFilterSubmit: (filters: FilterFormData) => void;
-  onKycActionComplete: () => void;
+  onApproveKyc: () => void;
+  onRequestKycDocuments: () => void;
+  onHoldKyc: () => void;
 }
 
 /**
@@ -31,9 +34,12 @@ export function DashboardLayoutV2({
   transactions,
   isLoadingTransactions,
   filters,
+  isProcessingKycAction,
   onCustomerSelect,
   onFilterSubmit,
-  onKycActionComplete,
+  onApproveKyc,
+  onRequestKycDocuments,
+  onHoldKyc,
 }: DashboardLayoutV2Props) {
   return (
     <div className="p-4">
@@ -69,7 +75,10 @@ export function DashboardLayoutV2({
           customer={selectedCustomer}
           kycResult={kycResult}
           kycVersion={kycVersion}
-          onActionComplete={onKycActionComplete}
+          isProcessing={isProcessingKycAction}
+          onApprove={onApproveKyc}
+          onRequestDocs={onRequestKycDocuments}
+          onHold={onHoldKyc}
         />
       </div>
     </div>

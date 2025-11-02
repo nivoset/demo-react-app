@@ -119,29 +119,41 @@ export function componentAttributesPlugin(): Plugin {
         });
 
 
-        // Second pass: For each component, find its return statement and add attributes
+        // Second pass: For each component, find its return statements and add attributes
         for (const component of components.values()) {
           const path = component.componentPath;
-          let jsxElement: t.JSXElement | null = null;
-          let returnStmtPath: NodePath<t.ReturnStatement> | null = null;
+          const jsxReturnStatements: NodePath<t.ReturnStatement>[] = [];
 
-          // Find the return statement in this component
+          // Find ALL return statements that return JSX (skip null returns)
           if (t.isFunctionDeclaration(path.node)) {
             // Find return statements only in the function body, not nested functions
             const body = path.node.body;
             if (t.isBlockStatement(body)) {
-              // Traverse only within this function's body
+              // Collect all return statements
+              const returnStatements: NodePath<t.ReturnStatement>[] = [];
               path.get('body').traverse({
                 ReturnStatement(returnPath: NodePath<t.ReturnStatement>) {
                   // Make sure we're not inside a nested function
                   const parent = returnPath.getFunctionParent();
                   if (!parent || parent.node === path.node) {
-                    if (!returnStmtPath) {
-                      returnStmtPath = returnPath;
-                    }
+                    returnStatements.push(returnPath);
                   }
                 },
               });
+              // Collect ALL return statements that return JSX (skip null returns)
+              for (const returnStmt of returnStatements) {
+                const returnValue = returnStmt.node.argument;
+                // Skip null returns (early returns)
+                if (returnValue && t.isNullLiteral(returnValue)) {
+                  continue;
+                }
+                if (returnValue && 
+                    (t.isJSXElement(returnValue) || 
+                     t.isJSXFragment(returnValue) || 
+                     t.isConditionalExpression(returnValue))) {
+                  jsxReturnStatements.push(returnStmt);
+                }
+              }
             }
           } else if (t.isVariableDeclarator(path.node)) {
             const init = path.node.init;
@@ -149,99 +161,124 @@ export function componentAttributesPlugin(): Plugin {
               const func = init;
               
               if (t.isArrowFunctionExpression(func) && t.isJSXElement(func.body)) {
-                // Implicit return - handle directly
-                jsxElement = func.body;
+                // Implicit return - will be handled below
               } else if (t.isBlockStatement(func.body)) {
-                // Traverse only within this function's body
+                // Collect all return statements
+                const returnStatements: NodePath<t.ReturnStatement>[] = [];
                 path.get('init').get('body').traverse({
                   ReturnStatement(returnPath: NodePath<t.ReturnStatement>) {
                     // Make sure we're not inside a nested function
                     const parent = returnPath.getFunctionParent();
                     if (!parent || parent.node === func) {
-                      if (!returnStmtPath) {
-                        returnStmtPath = returnPath;
-                      }
+                      returnStatements.push(returnPath);
                     }
                   },
                 });
-              }
-            }
-          }
-
-          // Extract JSX element from return statement
-          if (returnStmtPath && !jsxElement) {
-            const returnNode = (returnStmtPath as NodePath<t.ReturnStatement>).node;
-            const returnValue = returnNode.argument;
-            if (returnValue) {
-              if (t.isJSXElement(returnValue)) {
-                jsxElement = returnValue;
-              } else if (t.isJSXFragment(returnValue)) {
-                const firstChild = returnValue.children.find((child) =>
-                  t.isJSXElement(child)
-                ) as t.JSXElement | undefined;
-                if (firstChild) jsxElement = firstChild;
-              } else if (t.isConditionalExpression(returnValue)) {
-                if (t.isJSXElement(returnValue.consequent)) {
-                  jsxElement = returnValue.consequent;
-                } else if (t.isJSXElement(returnValue.alternate)) {
-                  jsxElement = returnValue.alternate;
+                // Collect ALL return statements that return JSX (skip null returns)
+                for (const returnStmt of returnStatements) {
+                  const returnValue = returnStmt.node.argument;
+                  // Skip null returns (early returns)
+                  if (returnValue && t.isNullLiteral(returnValue)) {
+                    continue;
+                  }
+                  if (returnValue && 
+                      (t.isJSXElement(returnValue) || 
+                       t.isJSXFragment(returnValue) || 
+                       t.isConditionalExpression(returnValue))) {
+                    jsxReturnStatements.push(returnStmt);
+                  }
                 }
               }
             }
           }
 
-          // Handle implicit return for arrow functions
-          if (!jsxElement && t.isVariableDeclarator(path.node)) {
-            const init = path.node.init;
-            if (init && t.isArrowFunctionExpression(init) && t.isJSXElement(init.body)) {
-              jsxElement = init.body;
+          // Helper function to add attributes to a JSX element
+          function addAttributesToJSXElement(
+            jsxElement: t.JSXElement,
+            comp: ComponentInfo,
+            fName: string
+          ) {
+            const existingAttributes = jsxElement.openingElement.attributes;
+
+            // Check if attributes already exist
+            const hasDataComponent = existingAttributes.some(
+              (attr) =>
+                t.isJSXAttribute(attr) &&
+                t.isJSXIdentifier(attr.name) &&
+                attr.name.name === 'data-component'
+            );
+
+            const hasDataBusinessLogic = existingAttributes.some(
+              (attr) =>
+                t.isJSXAttribute(attr) &&
+                t.isJSXIdentifier(attr.name) &&
+                attr.name.name === 'data-business-logic'
+            );
+
+            // ALWAYS add data-component to ALL components
+            if (!hasDataComponent) {
+              const componentAttr = t.jsxAttribute(
+                t.jsxIdentifier('data-component'),
+                t.stringLiteral(comp.name)
+              );
+              jsxElement.openingElement.attributes.push(componentAttr);
+              hasModifications = true;
+            }
+
+            // Only add data-business-logic if component uses hooks OTHER than useRef, useEffect, useMemo
+            const allowedHooks = new Set(['useRef', 'useEffect', 'useMemo']);
+            const businessLogicHooks = Array.from(comp.hooks).filter(
+              (h) => !allowedHooks.has(h)
+            );
+            
+            // Only add attribute if there are hooks that indicate business logic
+            // Use the filename as the value
+            if (!hasDataBusinessLogic && businessLogicHooks.length > 0) {
+              const businessLogicAttr = t.jsxAttribute(
+                t.jsxIdentifier('data-business-logic'),
+                t.stringLiteral(fName)
+              );
+              jsxElement.openingElement.attributes.push(businessLogicAttr);
+              hasModifications = true;
             }
           }
 
-          if (!jsxElement) continue;
-
-          const existingAttributes = jsxElement.openingElement.attributes;
-
-          // Check if attributes already exist
-          const hasDataComponent = existingAttributes.some(
-            (attr) =>
-              t.isJSXAttribute(attr) &&
-              t.isJSXIdentifier(attr.name) &&
-              attr.name.name === 'data-component'
-          );
-
-          const hasDataBusinessLogic = existingAttributes.some(
-            (attr) =>
-              t.isJSXAttribute(attr) &&
-              t.isJSXIdentifier(attr.name) &&
-              attr.name.name === 'data-business-logic'
-          );
-
-          // ALWAYS add data-component to ALL components
-          if (!hasDataComponent) {
-            const componentAttr = t.jsxAttribute(
-              t.jsxIdentifier('data-component'),
-              t.stringLiteral(component.name)
-            );
-            jsxElement.openingElement.attributes.push(componentAttr);
-            hasModifications = true;
+          // Handle implicit return for arrow functions
+          if (t.isVariableDeclarator(path.node)) {
+            const init = path.node.init;
+            if (init && t.isArrowFunctionExpression(init) && t.isJSXElement(init.body)) {
+              // For implicit returns, add to the JSX element directly
+              const jsxElement = init.body;
+              addAttributesToJSXElement(jsxElement, component, fileName);
+            }
           }
 
-          // Only add data-business-logic if component uses hooks OTHER than useRef, useEffect, useMemo
-          const allowedHooks = new Set(['useRef', 'useEffect', 'useMemo']);
-          const businessLogicHooks = Array.from(component.hooks).filter(
-            (h) => !allowedHooks.has(h)
-          );
-          
-          // Only add attribute if there are hooks that indicate business logic
-          // Use the filename as the value
-          if (!hasDataBusinessLogic && businessLogicHooks.length > 0) {
-            const businessLogicAttr = t.jsxAttribute(
-              t.jsxIdentifier('data-business-logic'),
-              t.stringLiteral(fileName)
-            );
-            jsxElement.openingElement.attributes.push(businessLogicAttr);
-            hasModifications = true;
+          // Process all JSX return statements - add attributes to each one
+          for (const returnStmtPath of jsxReturnStatements) {
+            const returnNode = returnStmtPath.node;
+            const returnValue = returnNode.argument;
+            if (!returnValue) continue;
+
+            let jsxElement: t.JSXElement | null = null;
+
+            if (t.isJSXElement(returnValue)) {
+              jsxElement = returnValue;
+            } else if (t.isJSXFragment(returnValue)) {
+              const firstChild = returnValue.children.find((child) =>
+                t.isJSXElement(child)
+              ) as t.JSXElement | undefined;
+              if (firstChild) jsxElement = firstChild;
+            } else if (t.isConditionalExpression(returnValue)) {
+              if (t.isJSXElement(returnValue.consequent)) {
+                jsxElement = returnValue.consequent;
+              } else if (t.isJSXElement(returnValue.alternate)) {
+                jsxElement = returnValue.alternate;
+              }
+            }
+
+            if (jsxElement) {
+              addAttributesToJSXElement(jsxElement, component, fileName);
+            }
           }
         }
 

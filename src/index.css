@@ -145,5 +145,11 @@ body[data-component][data-business-logic]:not([data-no-highlights])::before {
 [data-component][data-business-logic]:not([data-no-highlights])::after,
 html[data-component][data-business-logic]:not([data-no-highlights])::after,
 body[data-component][data-business-logic]:not([data-no-highlights])::after {
-  box-shadow: inset 0 0 0 var(--ring-pink-size) var(--ring-pink);
-}
+      box-shadow: inset 0 0 0 var(--ring-pink-size) var(--ring-pink);
+    }
+
+/* Dialog backdrop styling - blur only, no darkening */
+dialog::backdrop {
+      background-color: transparent;
+      backdrop-filter: blur(4px);
+    }

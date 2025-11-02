@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useFeatureFlags } from '../state/featureFlags';
 
 interface FeatureFlagsPanelProps {
@@ -7,9 +8,10 @@ interface FeatureFlagsPanelProps {
 
 /**
  * Feature Flags Panel - Panel content for managing feature flags
- * Panel visibility and button are controlled by parent component
+ * Uses HTML dialog element with backdrop for click-outside-to-close functionality
  */
 export function FeatureFlagsPanel({ isOpen, onClose }: FeatureFlagsPanelProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const {
     view,
     setView,
@@ -19,10 +21,45 @@ export function FeatureFlagsPanel({ isOpen, onClose }: FeatureFlagsPanelProps) {
     setShowComponentOutlines,
   } = useFeatureFlags();
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen) {
+      dialog.showModal();
+    } else {
+      dialog.close();
+    }
+  }, [isOpen]);
+
+  // Handle close event
+  const handleClose = () => {
+    onClose();
+  };
+
+  // Handle cancel event (ESC key or backdrop click)
+  // Clicking on the backdrop triggers the cancel event
+  const handleCancel = (e: React.SyntheticEvent<HTMLDialogElement>) => {
+    e.preventDefault();
+    onClose();
+  };
+
+  // Handle click on dialog - if clicked element is the dialog itself (backdrop), close it
+  const handleDialogClick = (e: React.MouseEvent<HTMLDialogElement>) => {
+    // If the click target is the dialog element itself (not its children), it's a backdrop click
+    if (e.target === dialogRef.current) {
+      onClose();
+    }
+  };
 
   return (
-    <div className="w-max bg-white rounded-lg shadow-2xl border-2 border-gray-200 p-6 max-h-[80vh] overflow-y-auto">
+    <dialog
+      ref={dialogRef}
+      onClose={handleClose}
+      onCancel={handleCancel}
+      onClick={handleDialogClick}
+      className="w-max bg-white rounded-lg shadow-2xl border-2 border-gray-200 p-6 max-h-[80vh] overflow-y-auto backdrop:backdrop-blur-sm fixed m-auto"
+    >
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-gray-900">Feature Flags</h2>
         <button
@@ -129,7 +166,7 @@ export function FeatureFlagsPanel({ isOpen, onClose }: FeatureFlagsPanelProps) {
         </label>
       </div>
       </div>
-    </div>
+    </dialog>
   );
 }
 

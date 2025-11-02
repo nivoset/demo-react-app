@@ -28,6 +28,7 @@ export function PaymentsOpsDashboard() {
   });
   const [isProcessingKycAction, setIsProcessingKycAction] = useState(false);
   const [showFeatureFlagsPanel, setShowFeatureFlagsPanel] = useState(false);
+  const [isHoveringCorner, setIsHoveringCorner] = useState(false);
   
   const { 
     kycVersion,
@@ -140,23 +141,35 @@ export function PaymentsOpsDashboard() {
         </div>
 
         {/* Floating Feature Flags Button & Panel */}
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
-          {/* Feature Flags Panel */}
-          <FeatureFlagsPanel 
-            isOpen={showFeatureFlagsPanel} 
-            onClose={() => setShowFeatureFlagsPanel(false)} 
-          />
+        <div
+          className="fixed bottom-0 right-0 z-50"
+          onMouseEnter={() => setIsHoveringCorner(true)}
+          onMouseLeave={() => setIsHoveringCorner(false)}
+        >
+          {/* Hover zone - invisible area to detect mouse in corner */}
+          <div className="absolute bottom-0 right-0 w-32 h-32" />
           
-          {/* Floating Button - Always visible, positioned after panel in DOM to ensure it's on top */}
-          <button
-            onClick={() => setShowFeatureFlagsPanel(!showFeatureFlagsPanel)}
-            className={`relative z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all ${
-              showFeatureFlagsPanel
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300'
-            }`}
-            title="Feature Flags"
-          >
+          <div className="flex flex-col items-end gap-4 pr-6 pb-6">
+            {/* Feature Flags Panel */}
+            <FeatureFlagsPanel 
+              isOpen={showFeatureFlagsPanel} 
+              onClose={() => setShowFeatureFlagsPanel(false)} 
+            />
+            
+            {/* Floating Button - Animates in when hovering corner or panel is open */}
+            <button
+              onClick={() => setShowFeatureFlagsPanel(!showFeatureFlagsPanel)}
+              className={`relative z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${
+                showFeatureFlagsPanel || isHoveringCorner
+                  ? 'opacity-100 translate-y-0'
+                  : 'opacity-0 translate-y-4 pointer-events-none'
+              } ${
+                showFeatureFlagsPanel
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300'
+              }`}
+              title="Feature Flags"
+            >
             <svg
               className="w-6 h-6"
               fill="none"
@@ -177,6 +190,7 @@ export function PaymentsOpsDashboard() {
               />
             </svg>
           </button>
+          </div>
         </div>
 
         {/* Dynamic Layout Based on View */}

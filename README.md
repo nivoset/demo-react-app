@@ -224,9 +224,11 @@ Global state management:
 ## 🎯 Features
 
 ### Customer Search
-- Integration with a simulated legacy micro-frontend component
-- Event-based communication pattern
+- Integration with a simulated legacy micro-frontend component styled to look like a 90s Windows application
+- Event-based communication pattern (custom events)
+- In production, would integrate with micro-frontend frameworks like single-spa for lifecycle management
 - Customer selection triggers KYC evaluation and transaction filtering
+- Styled with custom 90s Windows scrollbar and retro UI elements
 
 ### KYC Decisioning
 - Two rule engine versions (v1 and v2) that can be switched at runtime
@@ -243,6 +245,10 @@ Global state management:
 ### Transaction Management
 - Filter by date range, type (payment/refund/chargeback), and status
 - Real-time transaction list updates based on selected customer
+- **Optimistic Updates**: Approve/Hold buttons immediately update transaction statuses in the UI before the API call completes
+  - Approve: Changes pending transactions to completed
+  - Hold: Changes pending transactions to failed (blocked)
+  - Automatic rollback on API errors
 - Loading states and empty states
 
 ### Feature Flags
@@ -257,14 +263,15 @@ A visual debugging feature that displays:
 - **Green outlines**: UI components (marked with `data-component`)
 - **Pink outlines**: Business logic components (marked with `data-business-logic`)
 - **Both**: Components that have both UI and business logic
+- Legacy components can use `data-no-highlights` to exclude them from outline styling
 
 ## 🛠️ Technologies
 
 - **React 19** - UI library
 - **TypeScript** - Type safety
 - **Vite** - Build tool and dev server
-- **TanStack Query** - Data fetching, caching, and synchronization
-- **Zustand** - Lightweight state management with persistence
+- **TanStack Query** - Data fetching, caching, and synchronization with optimistic updates
+- **Zustand** - Lightweight state management with localStorage persistence
 - **React Hook Form** - Form state management
 - **Zod** - Schema validation
 - **Tailwind CSS** - Utility-first CSS framework
@@ -284,8 +291,12 @@ This enables visual debugging of component boundaries and business logic placeme
 ### Floating Feature Flags Panel
 - Hover over the bottom-right corner to reveal the gear icon button
 - Click to open/close the feature flags panel
+- Built with HTML `<dialog>` element for native backdrop and accessibility
+- Backdrop blur effect (no darkening overlay)
+- Click outside the panel or press ESC to close
 - Panel stays visible when open
 - Smooth animations and transitions
+- Settings persisted to localStorage
 
 ### Layout Switching
 - **View 1**: Traditional 3-column layout (Customer Search | Transactions | KYC Decision)
@@ -314,6 +325,12 @@ This enables visual debugging of component boundaries and business logic placeme
 2. The legacy component (`LegacyCustomerSearch`) dispatches custom events
 3. The `CustomerSearch` component listens to these events and converts them to React callbacks, demonstrating clean integration patterns
 
+### Testing Optimistic Updates
+1. Select a customer with pending transactions
+2. Click "Approve" or "Hold" button in the KYC Decision panel
+3. Notice that transaction statuses update immediately before the API call completes
+4. If the API call fails, the UI automatically rolls back to the previous state
+
 ## 🧪 Development Notes
 
 ### Data Flow
@@ -323,6 +340,32 @@ This enables visual debugging of component boundaries and business logic placeme
 3. Customer state changes → Triggers KYC evaluation via `useKycEngine`
 4. KYC result updates → UI reflects new decision
 5. Transactions refetch → Filtered by selected customer
+6. User clicks Approve/Hold → Optimistic update to transaction cache → API call → Refetch to sync with server
+
+### Accessibility
+
+The application follows WCAG AA accessibility standards:
+- All form inputs have associated labels (`htmlFor`/`id`)
+- Proper heading hierarchy (h1 → h2 → h3)
+- Semantic HTML (`<section>`, `<header>`, proper `<label>` elements)
+- ARIA labels for icon-only buttons
+- Sufficient color contrast ratios (text-gray-600/700 instead of text-gray-400)
+- Proper dialog implementation with backdrop and keyboard navigation
+- Table with `aria-label` attributes
+
+### SEO
+
+- Meta description tag for search engine optimization
+- Valid `robots.txt` file in `public/` directory
+- Descriptive page title
+- Semantic HTML structure for better crawling
+
+### Legacy Integration Notes
+
+The `LegacyCustomerSearch` component simulates a legacy micro-frontend. In a production environment:
+- Would integrate with frameworks like single-spa for lifecycle management (mount, unmount, update)
+- Would handle coordination between legacy app lifecycle and React lifecycle
+- The `CustomerSearch` wrapper component demonstrates how to bridge event-based communication to modern React patterns
 
 ### Feature Flag Persistence
 Feature flags are automatically saved to localStorage with the key `feature-flags-storage`. Settings persist across page refreshes.
@@ -340,7 +383,7 @@ The Vite plugin uses Babel AST parsing to:
 ```typescript
 import { useFeatureFlags } from '../state/featureFlags';
 
-const { kycVersion, view, setKycVersion } = useFeatureFlags();
+const { kycVersion, view, setKycVersion, showComponentOutlines, setShowComponentOutlines } = useFeatureFlags();
 ```
 
 ### Using KYC Engine
@@ -354,6 +397,29 @@ const result = kycEngine.evaluate({
   isPep: false,
   // ... other inputs
 });
+```
+
+### Optimistic Updates with TanStack Query
+```typescript
+import { useQueryClient } from '@tanstack/react-query';
+
+const queryClient = useQueryClient();
+
+// Optimistically update transaction cache
+queryClient.setQueryData(['transactions', filters, customerId], (oldData) => {
+  if (!oldData) return oldData;
+  return {
+    ...oldData,
+    transactions: oldData.transactions.map(t =>
+      t.status === 'pending' ? { ...t, status: 'completed' } : t
+    ),
+  };
+});
+
+// On error, rollback
+if (previousData) {
+  queryClient.setQueryData(['transactions', filters, customerId], previousData);
+}
 ```
 
 ### Legacy Component Integration
@@ -372,7 +438,7 @@ useEffect(() => {
 ## 🔍 Debugging
 
 ### React Query DevTools
-The project includes React Query DevTools (currently commented out). Uncomment in `src/main.tsx` to enable:
+The project includes React Query DevTools package, but it's currently commented out in `src/main.tsx`. To enable:
 ```typescript
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 // ...

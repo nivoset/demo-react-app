@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export interface Customer {
   id: string;
@@ -76,7 +76,7 @@ export function LegacyCustomerSearch({ onCustomerSelect }: LegacyCustomerSearchP
   // and listen for its custom events. For demo purposes, we create a React UI
   // that simulates the legacy component's behavior.
   return (
-    <div ref={containerRef} className="legacy-customer-search">
+    <div ref={containerRef} data-component="LegacyCustomerSearch" className="legacy-customer-search">
       <div className="mb-4">
         <input
           type="text"

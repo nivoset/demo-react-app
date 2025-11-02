@@ -1,0 +1,159 @@
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { LegacyCustomerSearch, type Customer } from '../adapters/LegacyCustomerSearch';
+import { FilterPanel, type FilterFormData } from '../components/FilterPanel';
+import { TransactionsTable } from '../components/TransactionsTable';
+import { CustomerDetailsPanel } from '../components/CustomerDetailsPanel';
+import { useKycEngine } from '../logic/useKycEngine';
+import { useFeatureFlags } from '../state/featureFlags';
+import { fetchTransactions, type TransactionFilters } from '../api/transactionsApi';
+
+/**
+ * Main Dashboard Page
+ * Composes UI components with business logic
+ * Demonstrates separation of concerns: UI components are separate from logic
+ */
+export function PaymentsOpsDashboard() {
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [filters, setFilters] = useState<TransactionFilters>({
+    dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    dateTo: new Date().toISOString().split('T')[0],
+  });
+  
+  const { kycVersion, setKycVersion } = useFeatureFlags();
+  const kycEngine = useKycEngine();
+
+  // Evaluate KYC decision when customer is selected
+  const kycResult = useMemo(() => {
+    if (!selectedCustomer) return null;
+
+    // Build KYC input from customer data
+    // In a real app, this might include transaction history, velocity, etc.
+    const kycInput = {
+      riskScore: selectedCustomer.riskScore,
+      country: selectedCustomer.country,
+      isPep: selectedCustomer.isPep,
+      sanctionsList: selectedCustomer.sanctionsList,
+      amount: 0, // Could be calculated from recent transactions
+      velocity: 0, // Could be calculated from recent transactions
+    };
+
+    return kycEngine.evaluate(kycInput);
+  }, [selectedCustomer, kycEngine]);
+
+  // Fetch transactions using TanStack Query
+  const {
+    data: transactionsData,
+    isLoading: isLoadingTransactions,
+    refetch: refetchTransactions,
+  } = useQuery({
+    queryKey: ['transactions', filters, selectedCustomer?.id],
+    queryFn: () =>
+      fetchTransactions({
+        ...filters,
+        customerId: selectedCustomer?.id,
+      }),
+  });
+
+  const handleCustomerSelect = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    // Transactions will automatically refetch due to query key including customerId
+  };
+
+  const handleFilterSubmit = (formFilters: FilterFormData) => {
+    setFilters({
+      dateFrom: formFilters.dateFrom,
+      dateTo: formFilters.dateTo,
+      type: formFilters.type === 'all' ? undefined : formFilters.type,
+      status: formFilters.status === 'all' ? undefined : formFilters.status,
+    });
+  };
+
+  const handleKycActionComplete = () => {
+    // Refetch transactions after KYC action
+    refetchTransactions();
+  };
+
+  return (
+    <div data-component="PaymentsOpsDashboard" data-business-logic="kycRules.v1,kycRules.v2,useKycEngine" className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Payments Operations Dashboard
+          </h1>
+          
+          {/* Feature Flag Toggle */}
+          <div className="flex items-center gap-4 mb-4">
+            <span className="text-sm text-gray-600">KYC Engine Version:</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setKycVersion('v1')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  kycVersion === 'v1'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                v1
+              </button>
+              <button
+                onClick={() => setKycVersion('v2')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  kycVersion === 'v2'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                v2
+              </button>
+            </div>
+            <span className="text-xs text-gray-500">
+              (Toggle to see how logic changes affect decision without UI changes)
+            </span>
+          </div>
+        </div>
+
+        {/* Filter Panel */}
+        <FilterPanel
+          onSubmit={handleFilterSubmit}
+          defaultValues={{
+            dateFrom: filters.dateFrom,
+            dateTo: filters.dateTo,
+            type: filters.type ? (filters.type as FilterFormData['type']) : 'all',
+            status: filters.status ? (filters.status as FilterFormData['status']) : 'all',
+          }}
+        />
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Panel: Customer Search (Legacy) */}
+          <div className="lg:col-span-1">
+            <div className="p-6 bg-white rounded-lg border border-gray-200">
+              <h2 className="text-lg font-semibold mb-4">Customer Search (Embedded)</h2>
+              <LegacyCustomerSearch onCustomerSelect={handleCustomerSelect} />
+            </div>
+          </div>
+
+          {/* Middle Panel: Transactions */}
+          <div className="lg:col-span-1">
+            <TransactionsTable
+              transactions={transactionsData?.transactions || []}
+              isLoading={isLoadingTransactions}
+            />
+          </div>
+
+          {/* Right Panel: KYC Decision */}
+          <div className="lg:col-span-1">
+            <CustomerDetailsPanel
+              customer={selectedCustomer}
+              kycResult={kycResult}
+              onActionComplete={handleKycActionComplete}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

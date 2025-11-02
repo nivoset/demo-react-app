@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { LegacyCustomerSearch, type Customer } from '../legacy/LegacyCustomerSearch';
+import { LegacyCustomerSearch, type Customer } from '../../../legacy/LegacyCustomerSearch';
 
 interface CustomerSearchProps {
   onCustomerSelect: (customer: Customer) => void;

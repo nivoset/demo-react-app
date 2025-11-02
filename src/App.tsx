@@ -1,4 +1,4 @@
-import { PaymentsOpsDashboard } from './views/PaymentsOpsDashboard';
+import { PaymentsOpsDashboard } from './views/dashboard/PaymentsOpsDashboard';
 import './App.css';
 
 function App() {

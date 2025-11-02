@@ -1,4 +1,4 @@
-import type { KycDecision } from '../logic/kycRules.v1';
+import type { KycDecision } from '../../../logic/kycRules.v1';
 
 interface KycDecisionBadgeProps {
   decision: KycDecision;

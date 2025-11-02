@@ -1,4 +1,4 @@
-import type { Transaction } from '../api/transactionsApi';
+import type { Transaction } from '../../../api/transactionsApi';
 
 interface TransactionsTableProps {
   transactions: Transaction[];

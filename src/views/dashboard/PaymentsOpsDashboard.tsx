@@ -1,19 +1,19 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { Customer } from '../legacy/LegacyCustomerSearch';
-import type { FilterFormData } from '../components/FilterPanel';
-import { useKycEngine } from '../logic/useKycEngine';
-import { useFeatureFlags } from '../state/featureFlags';
+import type { Customer } from '../../legacy/LegacyCustomerSearch';
+import type { FilterFormData } from './components/FilterPanel';
+import { useKycEngine } from '../../logic/useKycEngine';
+import { useFeatureFlags } from '../../state/featureFlags';
 import {
   fetchTransactions,
   approveKycDecision,
   requestKycDocuments,
   holdKycDecision,
   type TransactionFilters,
-} from '../api/transactionsApi';
-import { DashboardLayoutV1 } from '../views/DashboardLayoutV1';
-import { DashboardLayoutV2 } from '../views/DashboardLayoutV2';
-import { FeatureFlagsPanel } from '../components/FeatureFlagsPanel';
+} from '../../api/transactionsApi';
+import { DashboardLayoutV1 } from './DashboardLayoutV1';
+import { DashboardLayoutV2 } from './DashboardLayoutV2';
+import { FeatureFlagsPanel } from '../../components/FeatureFlagsPanel';
 
 /**
  * Main Dashboard Page

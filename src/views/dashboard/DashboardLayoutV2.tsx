@@ -1,11 +1,11 @@
-import { CustomerSearch } from '../components/CustomerSearch';
-import type { Customer } from '../legacy/LegacyCustomerSearch';
-import { FilterPanel, type FilterFormData } from '../components/FilterPanel';
-import { TransactionsTable } from '../components/TransactionsTable';
-import { CustomerDetailsPanel } from '../components/CustomerDetailsPanel';
-import type { KycResult } from '../logic/kycRules.v1';
-import type { TransactionFilters } from '../api/transactionsApi';
-import type { Transaction } from '../api/transactionsApi';
+import { CustomerSearch } from './components/CustomerSearch';
+import type { Customer } from '../../legacy/LegacyCustomerSearch';
+import { FilterPanel, type FilterFormData } from './components/FilterPanel';
+import { TransactionsTable } from './components/TransactionsTable';
+import { CustomerDetailsPanel } from './components/CustomerDetailsPanel';
+import type { KycResult } from '../../logic/kycRules.v1';
+import type { TransactionFilters } from '../../api/transactionsApi';
+import type { Transaction } from '../../api/transactionsApi';
 
 interface DashboardLayoutV2Props {
   selectedCustomer: Customer | null;

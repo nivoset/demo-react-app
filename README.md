@@ -43,9 +43,12 @@ This project demonstrates a clean separation of concerns with the following dire
 src/
 ├── legacy/            # Legacy/external system components
 ├── api/               # API clients and data fetching
-├── components/        # Pure presentation components (UI only, no business logic)
+├── components/        # Global reusable components (feature flags, etc.)
 ├── logic/             # Business logic and rules
 ├── views/             # View-level composition (UI + logic integration)
+│   └── dashboard/     # Dashboard feature
+│       ├── components/ # Dashboard-specific components
+│       └── *.tsx       # Dashboard views
 └── state/             # Global state management
 ```
 
@@ -64,21 +67,25 @@ Understanding where business logic lives and why is crucial to the architecture.
 ### Components (`/components`) - Mostly Pure Presentation
 
 **Why mostly no business logic here?**
-Components in `/components` are designed to be reusable, testable, and easy to reason about. They receive data via props and communicate via callbacks, with minimal knowledge of business rules or state management.
+Components in `/components` are designed to be reusable, testable, and easy to reason about. They receive data via props and communicate via callbacks, with minimal knowledge of business rules or state management, and preferably none.
 
 **Pure Presentation Examples:**
 - **`CustomerDetailsPanel`**: Receives customer data and KYC result as props. No logic, just displays what it's told.
 - **`TransactionsTable`**: Pure table rendering. No knowledge of filtering, sorting, or data fetching.
 - **`KycDecisionBadge`**: Just displays a badge. Color and text come from props.
 
-**Reusable Utility Exception:**
-- **`CustomerSearch`**: Has minimal business logic (event bridging) but lives in `/components` because:
-  - It's a reusable utility that other parts of the app can use
-  - The logic is self-contained and hides implementation details
-  - Organizational clarity: developers know "this is a component I can just use"
-  - Sometimes practical organization (discoverability, ease of use) takes precedence over strict purity
+**Feature-Specific Organization:**
+- **Dashboard Components** (`/views/dashboard/components/`): Co-located with dashboard views because:
+  - They're specific to the dashboard feature
+  - Easier to discover and maintain when grouped together
+  - Clear ownership - these belong to the dashboard feature
+  - Still reusable within the dashboard feature scope
 
-**Benefit**: Components can be used anywhere, tested in isolation, and won't break when business rules change. The directory serves as a "things you can use" location.
+**Global Components** (`/components/`):
+- Components used across multiple features (e.g., `FeatureFlagsPanel`)
+- Truly application-wide utilities
+
+**Benefit**: Feature-specific components are easier to find and maintain. Global components remain discoverable in the root components directory.
 
 ### Views (`/views`) - UI + Logic Integration
 
@@ -180,11 +187,15 @@ Legacy or external system components that use event-based communication:
 - **`transactionsApi.ts`**: API client for fetching transactions and managing KYC decisions
 
 ### `/components`
-Pure presentation components and reusable utilities:
+Global reusable components:
+
+- **`FeatureFlagsPanel.tsx`**: Floating panel for managing feature flags (shared across the app)
+
+### `/views/dashboard/components`
+Dashboard-specific components (grouped with dashboard views for organization):
 
 - **`CustomerSearch.tsx`**: Wrapper that converts legacy event-based communication to React callbacks (minimal business logic, but reusable utility)
 - **`CustomerDetailsPanel.tsx`**: Displays customer information and KYC decision with action buttons
-- **`FeatureFlagsPanel.tsx`**: Floating panel for managing feature flags
 - **`FilterPanel.tsx`**: Form for filtering transactions (date range, type, status)
 - **`KycDecisionBadge.tsx`**: Badge component for displaying KYC decision status
 - **`TransactionsTable.tsx`**: Table component for displaying transaction data
@@ -196,12 +207,14 @@ Business logic and rules:
 - **`kycRules.v2.ts`**: Enhanced KYC rule engine (adds PEP checks, amount thresholds, velocity, sanctions)
 - **`useKycEngine.ts`**: Custom hook that selects the appropriate KYC rule version based on feature flags
 
-### `/views`
-View-level components that compose UI with business logic:
+### `/views/dashboard`
+Dashboard feature views that compose UI with business logic:
 
 - **`PaymentsOpsDashboard.tsx`**: Main dashboard view orchestrating all components
 - **`DashboardLayoutV1.tsx`**: Classic 3-column horizontal layout
 - **`DashboardLayoutV2.tsx`**: Modern vertical stack layout
+
+**Organization Note**: Dashboard components are co-located in `/views/dashboard/components/` because they're feature-specific. This makes it clear that these components belong to the dashboard feature and are easier to find and maintain together.
 
 ### `/state`
 Global state management:

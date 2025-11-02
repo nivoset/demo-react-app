@@ -1,0 +1,12 @@
+# robots.txt for Payments Operations Dashboard
+# Allow all crawlers to access all content
+User-agent: *
+Allow: /
+
+# Disallow admin or sensitive paths (if any exist in the future)
+# Disallow: /admin/
+# Disallow: /api/
+
+# Sitemap location (update when sitemap is created)
+# Sitemap: https://yourdomain.com/sitemap.xml
+

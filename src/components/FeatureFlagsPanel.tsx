@@ -140,7 +140,7 @@ export function FeatureFlagsPanel({ isOpen, onClose }: FeatureFlagsPanelProps) {
         }`}>
           Active: {kycVersion.toUpperCase()}
         </div>
-        <span className="text-xs text-gray-500 ml-auto">
+        <span className="text-xs text-gray-600 ml-auto">
           (Toggle to see how logic changes affect decision)
         </span>
       </div>

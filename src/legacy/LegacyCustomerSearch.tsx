@@ -160,7 +160,7 @@ export function LegacyCustomerSearch() {
       <div className="legacy-scrollable bg-white border-2 border-t-gray-400 border-l-gray-400 border-r-white border-b-white p-1 shadow-[inset_2px_2px_0_#000000] max-h-64 overflow-y-auto">
         <div className="space-y-1">
           {filteredCustomers.length === 0 ? (
-            <div className="p-2 text-xs text-gray-500 font-mono">No customers found</div>
+            <div className="p-2 text-xs text-gray-600 font-mono">No customers found</div>
           ) : (
             filteredCustomers.map((customer) => (
               <div

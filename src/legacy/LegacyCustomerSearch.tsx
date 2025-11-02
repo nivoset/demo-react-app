@@ -130,8 +130,11 @@ export function LegacyCustomerSearch() {
       </div>
       {/* 90's style input field */}
       <div className="mb-3">
-        <label className="block text-xs font-bold text-gray-800 mb-1">Search Customer:</label>
+        <label htmlFor="legacy-customer-search-input" className="block text-xs font-bold text-gray-800 mb-1">
+          Search Customer:
+        </label>
         <input
+          id="legacy-customer-search-input"
           type="text"
           placeholder="Enter name or ID"
           value={searchTerm}
@@ -142,12 +145,14 @@ export function LegacyCustomerSearch() {
             }
           }}
           className="w-full px-2 py-1.5 bg-white border-2 border-t-gray-400 border-l-gray-400 border-r-white border-b-white shadow-[inset_2px_2px_0_#000000] text-sm font-mono focus:outline-none focus:border-t-blue-700 focus:border-l-blue-700"
+          aria-label="Search for customer by name or ID"
         />
       </div>
       {/* 90's style button */}
       <button
         onClick={handleSearch}
         className="w-full mb-3 px-3 py-2 bg-[#C0C0C0] border-2 border-t-white border-l-white border-r-gray-600 border-b-gray-600 text-sm font-bold text-gray-900 shadow-[2px_2px_0_#000000] active:shadow-[inset_1px_1px_0_#000000] active:border-t-gray-600 active:border-l-gray-600 active:border-r-white active:border-b-white hover:bg-[#D4D0C8]"
+        aria-label="Search for customers"
       >
         [ Search ]
       </button>

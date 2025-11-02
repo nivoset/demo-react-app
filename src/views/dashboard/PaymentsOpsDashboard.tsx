@@ -133,12 +133,12 @@ export function PaymentsOpsDashboard() {
       className={`min-h-screen bg-gray-50 p-6 ${showComponentOutlines ? 'show-component-outlines' : ''}`}
     >
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Payments Operations Dashboard
-          </h1>
-        </div>
+            {/* Header */}
+            <header className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Payments Operations Dashboard
+              </h1>
+            </header>
 
         {/* Floating Feature Flags Button & Panel */}
         <div
@@ -157,25 +157,28 @@ export function PaymentsOpsDashboard() {
             />
             
             {/* Floating Button - Animates in when hovering corner or panel is open */}
-            <button
-              onClick={() => setShowFeatureFlagsPanel(!showFeatureFlagsPanel)}
-              className={`relative z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${
-                showFeatureFlagsPanel || isHoveringCorner
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 translate-y-4 pointer-events-none'
-              } ${
-                showFeatureFlagsPanel
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300'
-              }`}
-              title="Feature Flags"
-            >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+                <button
+                  onClick={() => setShowFeatureFlagsPanel(!showFeatureFlagsPanel)}
+                  aria-label="Open feature flags panel"
+                  aria-expanded={showFeatureFlagsPanel}
+                  className={`relative z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${
+                    showFeatureFlagsPanel || isHoveringCorner
+                      ? 'opacity-100 translate-y-0'
+                      : 'opacity-0 translate-y-4 pointer-events-none'
+                  } ${
+                    showFeatureFlagsPanel
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300'
+                  }`}
+                  title="Feature Flags"
+                >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"

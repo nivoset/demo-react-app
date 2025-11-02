@@ -65,9 +65,10 @@ export function FeatureFlagsPanel({ isOpen, onClose }: FeatureFlagsPanelProps) {
         <button
           onClick={onClose}
           className="text-gray-400 hover:text-gray-600 transition-colors"
+          aria-label="Close feature flags panel"
           title="Close"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
@@ -146,24 +147,37 @@ export function FeatureFlagsPanel({ isOpen, onClose }: FeatureFlagsPanelProps) {
 
       {/* Component Outlines Toggle */}
       <div className="flex items-center gap-4 p-4 bg-white rounded-lg border-2 border-gray-200">
-        <span className="text-sm font-semibold text-gray-700">Show Component Outlines:</span>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <button
-            onClick={() => setShowComponentOutlines(!showComponentOutlines)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              showComponentOutlines ? 'bg-blue-600' : 'bg-gray-300'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                showComponentOutlines ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-          <span className="text-sm text-gray-600">
-            {showComponentOutlines ? 'On' : 'Off'}
-          </span>
+        <label htmlFor="toggle-component-outlines" className="text-sm font-semibold text-gray-700">
+          Show Component Outlines:
         </label>
+        <div className="flex items-center gap-2">
+          <label htmlFor="toggle-component-outlines" className="flex items-center gap-2 cursor-pointer">
+            <input
+              id="toggle-component-outlines"
+              type="checkbox"
+              checked={showComponentOutlines}
+              onChange={(e) => setShowComponentOutlines(e.target.checked)}
+              className="sr-only"
+              aria-label="Toggle component outlines visibility"
+            />
+            <span
+              role="switch"
+              aria-checked={showComponentOutlines}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                showComponentOutlines ? 'bg-blue-600' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  showComponentOutlines ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </span>
+            <span className="text-sm text-gray-600">
+              {showComponentOutlines ? 'On' : 'Off'}
+            </span>
+          </label>
+        </div>
       </div>
       </div>
     </dialog>

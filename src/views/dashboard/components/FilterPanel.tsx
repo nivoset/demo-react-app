@@ -72,39 +72,45 @@ export function FilterPanel({ onSubmit, defaultValues }: FilterPanelProps) {
   };
 
   return (
-    <div className="p-4 bg-white rounded-lg border border-gray-200 mb-6">
-      <h3 className="text-lg font-semibold mb-4">Filters</h3>
+    <section className="p-4 bg-white rounded-lg border border-gray-200 mb-6" aria-labelledby="filters-heading">
+      <h2 id="filters-heading" className="text-lg font-semibold mb-4">Filters</h2>
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="filter-date-from" className="block text-sm font-medium text-gray-700 mb-1">
               Date From
             </label>
             <input
+              id="filter-date-from"
               type="date"
               {...register('dateFrom')}
               defaultValue={defaultValues?.dateFrom || getDefaultDateFrom()}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Filter transactions from date"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="filter-date-to" className="block text-sm font-medium text-gray-700 mb-1">
               Date To
             </label>
             <input
+              id="filter-date-to"
               type="date"
               {...register('dateTo')}
               defaultValue={defaultValues?.dateTo || getDefaultDateTo()}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Filter transactions to date"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="filter-type" className="block text-sm font-medium text-gray-700 mb-1">
               Type
             </label>
             <select
+              id="filter-type"
               {...register('type')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Filter by transaction type"
             >
               <option value="all">All Types</option>
               <option value="payment">Payment</option>
@@ -113,12 +119,14 @@ export function FilterPanel({ onSubmit, defaultValues }: FilterPanelProps) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="filter-status" className="block text-sm font-medium text-gray-700 mb-1">
               Status
             </label>
             <select
+              id="filter-status"
               {...register('status')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Filter by transaction status"
             >
               <option value="all">All Statuses</option>
               <option value="completed">Completed</option>
@@ -144,7 +152,7 @@ export function FilterPanel({ onSubmit, defaultValues }: FilterPanelProps) {
           </button>
         </div>
       </form>
-    </div>
+    </section>
   );
 }
 

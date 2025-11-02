@@ -36,13 +36,13 @@ const getStatusBadgeColor = (status: Transaction['status']) => {
 const getTypeColor = (type: Transaction['type']) => {
   switch (type) {
     case 'payment':
-      return 'text-blue-600';
+      return 'text-blue-700';
     case 'refund':
-      return 'text-orange-600';
+      return 'text-orange-700';
     case 'chargeback':
-      return 'text-red-600';
+      return 'text-red-700';
     default:
-      return 'text-gray-600';
+      return 'text-gray-700';
   }
 };
 
@@ -58,7 +58,7 @@ export function TransactionsTable({ transactions, isLoading }: TransactionsTable
       <div className="p-6 bg-white rounded-lg border border-gray-200">
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-500">Loading transactions...</p>
+          <p className="mt-2 text-gray-600">Loading transactions...</p>
         </div>
       </div>
     );
@@ -66,18 +66,18 @@ export function TransactionsTable({ transactions, isLoading }: TransactionsTable
 
   if (transactions.length === 0) {
     return (
-      <div className="p-6 bg-white rounded-lg border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4 text-gray-400">Transactions</h3>
-        <p className="text-gray-400 text-center py-8">No transactions found</p>
-      </div>
+      <section className="p-6 bg-white rounded-lg border border-gray-200" aria-labelledby="transactions-heading">
+        <h2 id="transactions-heading" className="text-lg font-semibold mb-4 text-gray-700">Transactions</h2>
+        <p className="text-gray-600 text-center py-8">No transactions found</p>
+      </section>
     );
   }
 
   return (
-    <div className="p-6 bg-white rounded-lg border border-gray-200">
-      <h3 className="text-lg font-semibold mb-4">Transactions</h3>
+    <section className="p-6 bg-white rounded-lg border border-gray-200" aria-labelledby="transactions-heading">
+      <h2 id="transactions-heading" className="text-lg font-semibold mb-4">Transactions</h2>
       <div className="overflow-x-auto">
-        <table className="w-full text-left">
+        <table className="w-full text-left" aria-label="Transaction details">
           <thead>
             <tr className="border-b border-gray-200">
               <th className="pb-2 text-sm font-semibold text-gray-700">ID</th>
@@ -114,7 +114,7 @@ export function TransactionsTable({ transactions, isLoading }: TransactionsTable
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   );
 }
 

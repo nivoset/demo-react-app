@@ -27,10 +27,10 @@ export function CustomerDetailsPanel({
 }: CustomerDetailsPanelProps) {
   if (!customer) {
     return (
-      <div className="p-6 bg-white rounded-lg border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4 text-gray-500">KYC Decision</h3>
-        <p className="text-gray-400">Select a customer to view KYC decision</p>
-      </div>
+      <section className="p-6 bg-white rounded-lg border border-gray-200" aria-labelledby="kyc-decision-heading">
+        <h2 id="kyc-decision-heading" className="text-lg font-semibold mb-4 text-gray-700">KYC Decision</h2>
+        <p className="text-gray-600">Select a customer to view KYC decision</p>
+      </section>
     );
   }
 
@@ -40,11 +40,12 @@ export function CustomerDetailsPanel({
     : 'bg-purple-50 border-purple-300';
 
   return (
-    <div 
+    <section 
       className={`p-6 rounded-lg border-2 transition-colors ${versionStyles}`}
+      aria-labelledby="kyc-decision-heading"
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">KYC Decision</h3>
+        <h2 id="kyc-decision-heading" className="text-lg font-semibold">KYC Decision</h2>
         <div className={`px-3 py-1 rounded-full text-xs font-bold ${
           kycVersion === 'v1' 
             ? 'bg-blue-600 text-white' 
@@ -69,7 +70,7 @@ export function CustomerDetailsPanel({
 
         {kycResult && kycResult.reasons.length > 0 && (
           <div>
-            <h4 className="font-semibold text-sm text-gray-700 mb-2">Reasons</h4>
+            <h3 className="font-semibold text-sm text-gray-700 mb-2">Reasons</h3>
             <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
               {kycResult.reasons.map((reason, index) => (
                 <li key={index}>{reason}</li>
@@ -104,7 +105,7 @@ export function CustomerDetailsPanel({
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 

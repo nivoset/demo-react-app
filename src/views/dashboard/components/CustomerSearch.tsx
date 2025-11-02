@@ -49,10 +49,7 @@ export function CustomerSearch({ onCustomerSelect }: CustomerSearchProps) {
 
   return (
     <div ref={containerRef}>
-      <div className="p-6 bg-white rounded-lg border border-gray-200">
-        <h2 className="text-lg font-semibold mb-4">Customer Search (Embedded)</h2>
-        <LegacyCustomerSearch />
-      </div>
+      <LegacyCustomerSearch />
     </div>
   );
 }

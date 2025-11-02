@@ -1,13 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CustomerSearch } from '../adapters/LegacyCustomerSearchAdapter';
 import type { Customer } from '../adapters/LegacyCustomerSearch';
-import { FilterPanel, type FilterFormData } from '../components/FilterPanel';
-import { TransactionsTable } from '../components/TransactionsTable';
-import { CustomerDetailsPanel } from '../components/CustomerDetailsPanel';
+import type { FilterFormData } from '../components/FilterPanel';
 import { useKycEngine } from '../logic/useKycEngine';
 import { useFeatureFlags } from '../state/featureFlags';
 import { fetchTransactions, type TransactionFilters } from '../api/transactionsApi';
+import { DashboardLayoutV1 } from './DashboardLayoutV1';
+import { DashboardLayoutV2 } from './DashboardLayoutV2';
 
 /**
  * Main Dashboard Page
@@ -144,42 +143,32 @@ export function PaymentsOpsDashboard() {
           </div>
         </div>
 
-        {/* Filter Panel */}
-        <FilterPanel
-          onSubmit={handleFilterSubmit}
-          defaultValues={{
-            dateFrom: filters.dateFrom,
-            dateTo: filters.dateTo,
-            type: filters.type ? (filters.type as FilterFormData['type']) : 'all',
-            status: filters.status ? (filters.status as FilterFormData['status']) : 'all',
-          }}
-        />
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Panel: Customer Search (Legacy) */}
-          <div className="lg:col-span-1">
-            <CustomerSearch onCustomerSelect={handleCustomerSelect} />
-          </div>
-
-          {/* Middle Panel: Transactions */}
-          <div className="lg:col-span-1">
-            <TransactionsTable
-              transactions={transactionsData?.transactions || []}
-              isLoading={isLoadingTransactions}
-            />
-          </div>
-
-          {/* Right Panel: KYC Decision */}
-          <div className="lg:col-span-1">
-            <CustomerDetailsPanel
-              customer={selectedCustomer}
-              kycResult={kycResult}
-              kycVersion={kycVersion}
-              onActionComplete={handleKycActionComplete}
-            />
-          </div>
-        </div>
+        {/* Dynamic Layout Based on Version */}
+        {kycVersion === 'v1' ? (
+          <DashboardLayoutV1
+            selectedCustomer={selectedCustomer}
+            kycResult={kycResult}
+            kycVersion={kycVersion}
+            transactions={transactionsData?.transactions || []}
+            isLoadingTransactions={isLoadingTransactions}
+            filters={filters}
+            onCustomerSelect={handleCustomerSelect}
+            onFilterSubmit={handleFilterSubmit}
+            onKycActionComplete={handleKycActionComplete}
+          />
+        ) : (
+          <DashboardLayoutV2
+            selectedCustomer={selectedCustomer}
+            kycResult={kycResult}
+            kycVersion={kycVersion}
+            transactions={transactionsData?.transactions || []}
+            isLoadingTransactions={isLoadingTransactions}
+            filters={filters}
+            onCustomerSelect={handleCustomerSelect}
+            onFilterSubmit={handleFilterSubmit}
+            onKycActionComplete={handleKycActionComplete}
+          />
+        )}
       </div>
     </div>
   );

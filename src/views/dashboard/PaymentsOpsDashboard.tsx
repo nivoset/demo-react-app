@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Customer } from '../../legacy/LegacyCustomerSearch';
 import type { FilterFormData } from './components/FilterPanel';
 import { useKycEngine } from '../../logic/useKycEngine';
@@ -10,6 +10,8 @@ import {
   requestKycDocuments,
   holdKycDecision,
   type TransactionFilters,
+  type TransactionsResponse,
+  type Transaction,
 } from '../../api/transactionsApi';
 import { DashboardLayoutV1 } from './DashboardLayoutV1';
 import { DashboardLayoutV2 } from './DashboardLayoutV2';
@@ -36,6 +38,7 @@ export function PaymentsOpsDashboard() {
     showComponentOutlines,
   } = useFeatureFlags();
   const kycEngine = useKycEngine();
+  const queryClient = useQueryClient();
 
   // Evaluate KYC decision when customer is selected
   const kycResult = useMemo(() => {
@@ -84,19 +87,63 @@ export function PaymentsOpsDashboard() {
   };
 
   const handleKycActionComplete = () => {
-    // Refetch transactions after KYC action
+    // Refetch transactions after KYC action to ensure consistency
     refetchTransactions();
+  };
+
+  // Optimistically update transaction status for a customer
+  const updateTransactionsOptimistically = (
+    customerId: string,
+    updateFn: (transaction: Transaction) => Transaction
+  ) => {
+    const queryKey = ['transactions', filters, customerId];
+    queryClient.setQueryData<TransactionsResponse>(queryKey, (oldData) => {
+      if (!oldData) return oldData;
+      
+      return {
+        ...oldData,
+        transactions: oldData.transactions.map((transaction) =>
+          transaction.customerId === customerId
+            ? updateFn(transaction)
+            : transaction
+        ),
+      };
+    });
   };
 
   // Handle KYC actions - all business logic at page level
   const handleApproveKyc = async () => {
     if (!selectedCustomer) return;
     setIsProcessingKycAction(true);
+    
+    // Store the previous data for rollback
+    const previousData = queryClient.getQueryData<TransactionsResponse>([
+      'transactions',
+      filters,
+      selectedCustomer.id,
+    ]);
+
     try {
+      // Optimistically update: change pending transactions to completed
+      updateTransactionsOptimistically(selectedCustomer.id, (transaction) => {
+        if (transaction.status === 'pending') {
+          return { ...transaction, status: 'completed' as const };
+        }
+        return transaction;
+      });
+
       await approveKycDecision(selectedCustomer.id);
-      handleKycActionComplete();
+      // Refetch to ensure we have the latest server state
+      await refetchTransactions();
     } catch (error) {
       console.error('Failed to approve KYC decision:', error);
+      // Rollback on error
+      if (previousData) {
+        queryClient.setQueryData(
+          ['transactions', filters, selectedCustomer.id],
+          previousData
+        );
+      }
     } finally {
       setIsProcessingKycAction(false);
     }
@@ -118,11 +165,36 @@ export function PaymentsOpsDashboard() {
   const handleHoldKyc = async () => {
     if (!selectedCustomer) return;
     setIsProcessingKycAction(true);
+    
+    // Store the previous data for rollback
+    const previousData = queryClient.getQueryData<TransactionsResponse>([
+      'transactions',
+      filters,
+      selectedCustomer.id,
+    ]);
+
     try {
+      // Optimistically update: change pending transactions to failed (or keep as pending with visual indicator)
+      // For hold, we'll mark pending transactions as failed to indicate they're blocked
+      updateTransactionsOptimistically(selectedCustomer.id, (transaction) => {
+        if (transaction.status === 'pending') {
+          return { ...transaction, status: 'failed' as const };
+        }
+        return transaction;
+      });
+
       await holdKycDecision(selectedCustomer.id);
-      handleKycActionComplete();
+      // Refetch to ensure we have the latest server state
+      await refetchTransactions();
     } catch (error) {
       console.error('Failed to hold KYC decision:', error);
+      // Rollback on error
+      if (previousData) {
+        queryClient.setQueryData(
+          ['transactions', filters, selectedCustomer.id],
+          previousData
+        );
+      }
     } finally {
       setIsProcessingKycAction(false);
     }

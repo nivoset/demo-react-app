@@ -6,3 +6,36 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Component and Business Logic Outline Styles */
+.show-component-outlines [data-component]:not([data-business-logic]),
+.show-component-outlines[data-component]:not([data-business-logic]) {
+  outline: 3px solid rgb(34, 197, 94) !important; /* green-500 */
+  outline-offset: -3px;
+  box-shadow: 
+    inset 0 0 0 2px rgba(34, 197, 94, 0.3),
+    0 2px 4px rgba(34, 197, 94, 0.2) !important;
+}
+
+.show-component-outlines [data-business-logic]:not([data-component]),
+.show-component-outlines[data-business-logic]:not([data-component]) {
+  outline: 3px solid rgb(236, 72, 153) !important; /* pink-500 */
+  outline-offset: -3px;
+  box-shadow: 
+    inset 0 0 0 2px rgba(236, 72, 153, 0.3),
+    0 2px 4px rgba(236, 72, 153, 0.2) !important;
+}
+
+/* When both attributes exist, show both outlines with distinct layers */
+.show-component-outlines [data-component][data-business-logic],
+.show-component-outlines[data-component][data-business-logic] {
+  position: relative;
+  outline: 3px solid rgb(236, 72, 153) !important; /* pink outer */
+  outline-offset: -3px;
+  box-shadow: 
+    0 0 0 6px rgba(236, 72, 153, 0.7), /* pink outer ring */
+    inset 0 0 0 4px rgb(34, 197, 94), /* green inner outline - thicker */
+    inset 0 0 0 7px rgba(34, 197, 94, 0.4), /* green inner glow - more inset */
+    0 2px 4px rgba(34, 197, 94, 0.3),
+    0 2px 4px rgba(236, 72, 153, 0.3) !important;
+}

@@ -19,6 +19,7 @@ export function PaymentsOpsDashboard() {
     dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     dateTo: new Date().toISOString().split('T')[0],
   });
+  const [showComponentOutlines, setShowComponentOutlines] = useState(false);
   
   const { kycVersion, setKycVersion } = useFeatureFlags();
   const kycEngine = useKycEngine();
@@ -75,10 +76,31 @@ export function PaymentsOpsDashboard() {
   };
 
   return (
-    <div data-component="PaymentsOpsDashboard" data-business-logic="kycRules.v1,kycRules.v2,useKycEngine" className="min-h-screen bg-gray-50 p-6">
+    <div 
+      data-component="PaymentsOpsDashboard" 
+      data-business-logic="kycRules.v1,kycRules.v2,useKycEngine" 
+      className={`min-h-screen bg-gray-50 p-6 ${showComponentOutlines ? 'show-component-outlines' : ''}`}
+    >
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-6 relative">
+          <div className="absolute top-0 right-0">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-sm text-gray-600">Show Component Outlines</span>
+              <button
+                onClick={() => setShowComponentOutlines(!showComponentOutlines)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  showComponentOutlines ? 'bg-blue-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    showComponentOutlines ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </label>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Payments Operations Dashboard
           </h1>

@@ -11,6 +11,7 @@ import {
 interface CustomerDetailsPanelProps {
   customer: Customer | null;
   kycResult: KycResult | null;
+  kycVersion: 'v1' | 'v2';
   onActionComplete?: () => void;
 }
 
@@ -21,6 +22,7 @@ interface CustomerDetailsPanelProps {
 export function CustomerDetailsPanel({
   customer,
   kycResult,
+  kycVersion,
   onActionComplete,
 }: CustomerDetailsPanelProps) {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -70,9 +72,26 @@ export function CustomerDetailsPanel({
     }
   };
 
+  // Visual styling based on KYC version
+  const versionStyles = kycVersion === 'v1' 
+    ? 'bg-blue-50 border-blue-300' 
+    : 'bg-purple-50 border-purple-300';
+
   return (
-    <div data-component="CustomerDetailsPanel" className="p-6 bg-white rounded-lg border border-gray-200">
-      <h3 className="text-lg font-semibold mb-4">KYC Decision</h3>
+    <div 
+      data-component="CustomerDetailsPanel" 
+      className={`p-6 rounded-lg border-2 transition-colors ${versionStyles}`}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold">KYC Decision</h3>
+        <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+          kycVersion === 'v1' 
+            ? 'bg-blue-600 text-white' 
+            : 'bg-purple-600 text-white'
+        }`}>
+          {kycVersion.toUpperCase()}
+        </div>
+      </div>
       
       <div className="space-y-4">
         <div>

@@ -107,14 +107,14 @@ export function PaymentsOpsDashboard() {
           </h1>
           
           {/* Feature Flag Toggle */}
-          <div className="flex items-center gap-4 mb-4">
-            <span className="text-sm text-gray-600">KYC Engine Version:</span>
+          <div className="flex items-center gap-4 mb-4 p-4 bg-white rounded-lg border-2 border-gray-200">
+            <span className="text-sm font-semibold text-gray-700">KYC Engine Version:</span>
             <div className="flex gap-2">
               <button
                 onClick={() => setKycVersion('v1')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${
                   kycVersion === 'v1'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blue-600 text-white shadow-lg scale-105 ring-2 ring-blue-300'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
@@ -122,17 +122,24 @@ export function PaymentsOpsDashboard() {
               </button>
               <button
                 onClick={() => setKycVersion('v2')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${
                   kycVersion === 'v2'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-purple-600 text-white shadow-lg scale-105 ring-2 ring-purple-300'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
                 v2
               </button>
             </div>
-            <span className="text-xs text-gray-500">
-              (Toggle to see how logic changes affect decision without UI changes)
+            <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+              kycVersion === 'v1' 
+                ? 'bg-blue-100 text-blue-800 border border-blue-300' 
+                : 'bg-purple-100 text-purple-800 border border-purple-300'
+            }`}>
+              Active: {kycVersion.toUpperCase()}
+            </div>
+            <span className="text-xs text-gray-500 ml-auto">
+              (Toggle to see how logic changes affect decision)
             </span>
           </div>
         </div>
@@ -168,6 +175,7 @@ export function PaymentsOpsDashboard() {
             <CustomerDetailsPanel
               customer={selectedCustomer}
               kycResult={kycResult}
+              kycVersion={kycVersion}
               onActionComplete={handleKycActionComplete}
             />
           </div>

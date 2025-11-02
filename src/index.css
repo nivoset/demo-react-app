@@ -8,8 +8,8 @@ body {
 }
 
 :root {
-  --ring-green: green;
-  --ring-pink: hotpink;
+  --ring-green: transparent;
+  --ring-pink: transparent;
   --ring-green-size: 10px;
   --ring-pink-size: 4px;
 }
@@ -46,6 +46,13 @@ body[data-business-logic]::after {
   z-index: 9999;
 }
 
+.show-component-outlines {
+  --ring-green: green;
+  --ring-pink: hotpink;
+  --ring-green-size: 10px;
+  --ring-pink-size: 4px;
+
+}
 /* Only green — before pseudo */
 [data-component]:not([data-business-logic])::before,
 html[data-component]:not([data-business-logic])::before,

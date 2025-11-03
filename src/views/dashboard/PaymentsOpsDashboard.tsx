@@ -39,12 +39,12 @@ export function PaymentsOpsDashboard({ view: viewProp }: PaymentsOpsDashboardPro
   
   const { 
     kycVersion,
-    view: viewFromFlags, 
     showComponentOutlines,
   } = useFeatureFlags();
   
-  // Use view from prop (routing) if provided, otherwise fall back to feature flags
-  const view = viewProp || viewFromFlags;
+  // Use view from prop (routing) - navigation concern, not a feature flag
+  // Default to view1 if not provided (for testing or direct component usage)
+  const view = viewProp || 'view1';
   const location = useLocation();
   const currentView = location.pathname === '/view2' ? 'view2' : 'view1';
   const kycEngine = useKycEngine();

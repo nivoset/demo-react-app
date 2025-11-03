@@ -13,8 +13,6 @@ interface FeatureFlagsPanelProps {
 export function FeatureFlagsPanel({ isOpen, onClose }: FeatureFlagsPanelProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const {
-    view,
-    setView,
     kycVersion,
     setKycVersion,
     showComponentOutlines,
@@ -74,40 +72,6 @@ export function FeatureFlagsPanel({ isOpen, onClose }: FeatureFlagsPanelProps) {
         </button>
       </div>
       <div className="space-y-3">
-      {/* View Toggle */}
-      <div className="flex items-center gap-4 p-4 bg-white rounded-lg border-2 border-gray-200">
-        <span className="text-sm font-semibold text-gray-700">Dashboard View:</span>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setView('view1')}
-            className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${
-              view === 'view1'
-                ? 'bg-blue-600 text-white shadow-lg scale-105 ring-2 ring-blue-300'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            View 1
-          </button>
-          <button
-            onClick={() => setView('view2')}
-            className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${
-              view === 'view2'
-                ? 'bg-purple-600 text-white shadow-lg scale-105 ring-2 ring-purple-300'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            View 2
-          </button>
-        </div>
-        <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-          view === 'view1' 
-            ? 'bg-blue-100 text-blue-800 border border-blue-300' 
-            : 'bg-purple-100 text-purple-800 border border-purple-300'
-        }`}>
-          Active: {view === 'view1' ? 'View 1' : 'View 2'}
-        </div>
-      </div>
-
       {/* KYC Engine Version Toggle */}
       <div className="flex items-center gap-4 p-4 bg-white rounded-lg border-2 border-gray-200">
         <span className="text-sm font-semibold text-gray-700">KYC Engine Version:</span>

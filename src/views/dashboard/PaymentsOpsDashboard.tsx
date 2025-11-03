@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Customer } from '../../legacy/LegacyCustomerSearch';
 import type { FilterFormData } from './components/FilterPanel';
@@ -17,12 +18,16 @@ import { DashboardLayoutV1 } from './DashboardLayoutV1';
 import { DashboardLayoutV2 } from './DashboardLayoutV2';
 import { FeatureFlagsPanel } from '../../components/FeatureFlagsPanel';
 
+interface PaymentsOpsDashboardProps {
+  view?: 'view1' | 'view2';
+}
+
 /**
  * Main Dashboard Page
  * Composes UI components with business logic
  * Demonstrates separation of concerns: UI components are separate from logic
  */
-export function PaymentsOpsDashboard() {
+export function PaymentsOpsDashboard({ view: viewProp }: PaymentsOpsDashboardProps = {}) {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [filters, setFilters] = useState<TransactionFilters>({
     dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -34,9 +39,14 @@ export function PaymentsOpsDashboard() {
   
   const { 
     kycVersion,
-    view, 
+    view: viewFromFlags, 
     showComponentOutlines,
   } = useFeatureFlags();
+  
+  // Use view from prop (routing) if provided, otherwise fall back to feature flags
+  const view = viewProp || viewFromFlags;
+  const location = useLocation();
+  const currentView = location.pathname === '/view2' ? 'view2' : 'view1';
   const kycEngine = useKycEngine();
   const queryClient = useQueryClient();
 
@@ -207,9 +217,36 @@ export function PaymentsOpsDashboard() {
       <div className="max-w-7xl mx-auto">
             {/* Header */}
             <header className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Payments Operations Dashboard
-              </h1>
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Payments Operations Dashboard
+                </h1>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-gray-700">Dashboard View:</span>
+                  <div className="flex gap-2">
+                    <Link
+                      to="/view1"
+                      className={`px-6 py-2 rounded-md text-sm font-bold transition-all text-center ${
+                        currentView === 'view1'
+                          ? 'bg-blue-600 text-white shadow-lg scale-105 ring-2 ring-blue-300'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      View 1
+                    </Link>
+                    <Link
+                      to="/view2"
+                      className={`px-6 py-2 rounded-md text-sm font-bold transition-all text-center ${
+                        currentView === 'view2'
+                          ? 'bg-purple-600 text-white shadow-lg scale-105 ring-2 ring-purple-300'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      View 2
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </header>
 
         {/* Floating Feature Flags Button & Panel */}

@@ -1,10 +1,19 @@
-import type { KycDecision, KycInput, KycResult } from './kycRules.v1';
+import type { KycDecision, KycInputBase, KycResult } from './kycRules.v1';
 
-export interface KycInputV2 extends KycInput {
+// Base input fields for v2 (extends v1 base)
+export interface KycInputV2Base extends KycInputBase {
   isPep?: boolean; // Politically Exposed Person
   velocity?: number; // Number of transactions in last 24h
   sanctionsList?: boolean; // On sanctions list
 }
+
+// Discriminated union type for v2
+export interface KycInputV2 extends KycInputV2Base {
+  version: 'v2';
+}
+
+// Re-export v1 type for convenience
+export type KycInput = import('./kycRules.v1').KycInput;
 
 /**
  * KYC Rules v2 - Enhanced rule-based evaluation

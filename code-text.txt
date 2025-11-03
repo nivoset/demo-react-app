@@ -1,3 +1,581 @@
+# Code Repository Analysis
+
+Generated: 2025-11-02T21:01:45.860Z
+Total Files: 29
+
+---
+
+
+## README.md
+
+**Summary:** Analysis failed
+
+**Full Code:**
+```
+# Payments Operations Dashboard
+
+A modern React + TypeScript application demonstrating modular architecture, feature flags, and best practices for separating UI components from business logic. This dashboard provides customer search, KYC (Know Your Customer) decisioning, risk scoring, and transaction management capabilities.
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
+
+```bash
+# Install dependencies
+npm install
+```
+
+### Development
+
+```bash
+# Start development server
+npm run dev
+```
+
+The application will be available at `http://localhost:5173` (or the next available port).
+
+### Building for Production
+
+```bash
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+## 🏗️ Architecture
+
+This project demonstrates a clean separation of concerns with the following directory structure:
+
+```
+src/
+├── legacy/            # Legacy/external system components
+├── api/               # API clients and data fetching
+├── components/        # Global reusable components (feature flags, etc.)
+├── logic/             # Business logic and rules
+├── views/             # View-level composition (UI + logic integration)
+│   └── dashboard/     # Dashboard feature
+│       ├── components/ # Dashboard-specific components
+│       └── *.tsx       # Dashboard views
+└── state/             # Global state management
+```
+
+### Key Architectural Principles
+
+1. **Separation of Concerns**: UI components are completely separate from business logic
+2. **Legacy Integration Pattern**: Legacy/external components are wrapped in view components to bridge event-based communication
+3. **Feature Flags**: Runtime switching between different versions of business logic and UI layouts
+4. **Custom Hooks**: Business logic encapsulated in reusable hooks
+5. **Component Attributes Plugin**: Automatic injection of `data-component` and `data-business-logic` attributes for debugging
+
+## 🤔 Business Logic Placement Decisions
+
+Understanding where business logic lives and why is crucial to the architecture. Here's a breakdown of the decisions made:
+
+### Components (`/components`) - Mostly Pure Presentation
+
+**Why mostly no business logic here?**
+Components in `/components` are designed to be reusable, testable, and easy to reason about. They receive data via props and communicate via callbacks, with minimal knowledge of business rules or state management, and preferably none.
+
+**Pure Presentation Examples:**
+- **`CustomerDetailsPanel`**: Receives customer data and KYC result as props. No logic, just displays what it's told.
+- **`TransactionsTable`**: Pure table rendering. No knowledge of filtering, sorting, or data fetching.
+- **`KycDecisionBadge`**: Just displays a badge. Color and text come from props.
+
+**Feature-Specific Organization:**
+- **Dashboard Components** (`/views/dashboard/components/`): Co-located with dashboard views because:
+  - They're specific to the dashboard feature
+  - Easier to discover and maintain when grouped together
+  - Clear ownership - these belong to the dashboard feature
+  - Still reusable within the dashboard feature scope
+
+**Global Components** (`/components/`):
+- Components used across multiple features (e.g., `FeatureFlagsPanel`)
+- Truly application-wide utilities
+
+**Benefit**: Feature-specific components are easier to find and maintain. Global components remain discoverable in the root components directory.
+
+### Views (`/views`) - UI + Logic Integration
+
+**Why business logic here?**
+Views are responsible for orchestrating multiple components, managing state, calling APIs, and applying business rules. They're application-specific compositions.
+
+**Examples with clear business logic needs:**
+
+1. **`PaymentsOpsDashboard`** - **Clear Need for Business Logic**
+   - **Why**: Must orchestrate data flow between customer selection, KYC evaluation, and transaction fetching
+   - **Contains**: 
+     - State management (selected customer, filters, processing state)
+     - KYC evaluation orchestration (calling `useKycEngine` with customer data)
+     - API calls (transactions, KYC actions)
+     - Side effects (refetching transactions after KYC actions)
+   - **Couldn't be pure**: Needs to coordinate multiple concerns and manage side effects
+
+
+2. **`DashboardLayoutV1` & `DashboardLayoutV2`** - **Minimal Logic, Mostly Composition**
+   - **Why**: These are layout views that compose components together
+   - **Contains**: Just prop passing and layout structure
+   - **Note**: These could arguably be pure components, but they're views because:
+     - They're application-specific (not reusable)
+     - They compose multiple concerns (search, transactions, KYC)
+     - They serve as view boundaries for feature flag switching
+
+### Design Choices (Could Go Either Way)
+
+**Feature Flags Implementation** - **Design Choice**
+
+The feature flag panel could be implemented in different ways:
+
+**Current Choice**: `FeatureFlagsPanel` in `/components` reads from Zustand store
+- **Why in components**: It's just displaying state and calling setters - no business rules
+- **Why not pure**: Uses `useFeatureFlags()` hook
+- **Alternative**: Could be a view if it had complex logic (e.g., validation, side effects)
+- **Decision**: Kept in components because it's primarily UI. The business logic (what flags mean) lives in `useKycEngine` and layout views.
+
+**CustomerSearch** - **Practical Organization Choice**
+
+`CustomerSearch` has minimal business logic (event bridging) but lives in `/components`:
+- **Why in components**: It's a reusable utility - developers should know they can just use it
+- **What it does**: Bridges legacy custom events to React callbacks, hides legacy implementation
+- **Why not in views**: While it has logic, it's self-contained and meant to be reusable
+- **Alternative**: Could be in views, but then developers might not discover it as easily
+- **Decision**: Practical organization - `/components` means "things you can use", even if they have minimal logic
+
+**Filter Panel** - **Design Choice**
+
+`FilterPanel` uses React Hook Form but lives in `/components`:
+- **Why in components**: Form state management is presentation concern, not business logic
+- **What it does**: Validates form inputs, manages form state
+- **What it doesn't do**: Doesn't know what filters mean or how they're used
+- **Business logic lives**: In `PaymentsOpsDashboard` where filters are converted to API calls
+- **Alternative**: Could be a view if filters needed complex business rules (e.g., "can't filter future dates")
+
+### Logic Directory (`/logic`) - Pure Business Rules
+
+**Why separate from views?**
+Business rules should be:
+- Testable in isolation (no React dependencies)
+- Reusable across different views
+- Version-controlled (v1 vs v2)
+- Independent of UI framework
+
+**Examples:**
+- **`kycRules.v1` & `kycRules.v2`**: Pure functions that evaluate KYC decisions
+- **`useKycEngine`**: Hook that selects which rule version to use (feature flag logic)
+
+**Why not in views?**: Rules can be tested without rendering, can be shared across multiple views, and versioning allows gradual rollout.
+
+### State Directory (`/state`) - Global State
+
+**Why separate?**
+- Shared across multiple views
+- Needs persistence (localStorage)
+- Feature flags affect multiple parts of the app
+
+**Example:**
+- **`featureFlags`**: Zustand store that multiple views read from (`PaymentsOpsDashboard`, `FeatureFlagsPanel`, `useKycEngine`)
+
+### Summary of Decision Matrix
+
+| Location | Contains Business Logic? | Reason | Could Be Different? |
+|----------|------------------------|--------|---------------------|
+| `/components` | ⚠️ Minimal | Mostly pure presentation, reusable utilities | CustomerSearch exception for practical organization |
+| `/views` | ✅ Yes | Orchestration, state, side effects | Some could be simpler (layout views) |
+| `/logic` | ✅ Pure Rules | Business rules, testable | No - rules must be separate |
+| `/state` | ⚠️ Configuration | Feature flags, settings | Could be in logic, but persistence is state concern |
+
+## 📁 Directory Structure
+
+### `/legacy`
+Legacy or external system components that use event-based communication:
+
+- **`LegacyCustomerSearch.tsx`**: Simulated legacy micro-frontend component that dispatches custom events
+
+### `/api`
+- **`transactionsApi.ts`**: API client for fetching transactions and managing KYC decisions
+
+### `/components`
+Global reusable components:
+
+- **`FeatureFlagsPanel.tsx`**: Floating panel for managing feature flags (shared across the app)
+
+### `/views/dashboard/components`
+Dashboard-specific components (grouped with dashboard views for organization):
+
+- **`CustomerSearch.tsx`**: Wrapper that converts legacy event-based communication to React callbacks (minimal business logic, but reusable utility)
+- **`CustomerDetailsPanel.tsx`**: Displays customer information and KYC decision with action buttons
+- **`FilterPanel.tsx`**: Form for filtering transactions (date range, type, status)
+- **`KycDecisionBadge.tsx`**: Badge component for displaying KYC decision status
+- **`TransactionsTable.tsx`**: Table component for displaying transaction data
+
+### `/logic`
+Business logic and rules:
+
+- **`kycRules.v1.ts`**: Simple KYC rule engine (risk score, country-based decisions)
+- **`kycRules.v2.ts`**: Enhanced KYC rule engine (adds PEP checks, amount thresholds, velocity, sanctions)
+- **`useKycEngine.ts`**: Custom hook that selects the appropriate KYC rule version based on feature flags
+
+### `/views/dashboard`
+Dashboard feature views that compose UI with business logic:
+
+- **`PaymentsOpsDashboard.tsx`**: Main dashboard view orchestrating all components
+- **`DashboardLayoutV1.tsx`**: Classic 3-column horizontal layout
+- **`DashboardLayoutV2.tsx`**: Modern vertical stack layout
+
+**Organization Note**: Dashboard components are co-located in `/views/dashboard/components/` because they're feature-specific. This makes it clear that these components belong to the dashboard feature and are easier to find and maintain together.
+
+### `/state`
+Global state management:
+
+- **`featureFlags.ts`**: Zustand store for feature flags with localStorage persistence
+
+## 🎯 Features
+
+### Customer Search
+- Integration with a simulated legacy micro-frontend component styled to look like a 90s Windows application
+- Event-based communication pattern (custom events)
+- In production, would integrate with micro-frontend frameworks like single-spa for lifecycle management
+- Customer selection triggers KYC evaluation and transaction filtering
+- Styled with custom 90s Windows scrollbar and retro UI elements
+
+### KYC Decisioning
+- Two rule engine versions (v1 and v2) that can be switched at runtime
+- **v1 Rules**:
+  - Risk score-based decisions (≥80 deny, 50-79 manual review)
+  - Country-based restrictions
+- **v2 Rules** (Enhanced):
+  - All v1 rules plus:
+  - PEP (Politically Exposed Person) checks
+  - Amount thresholds
+  - Transaction velocity checks
+  - Sanctions list verification
+
+### Transaction Management
+- Filter by date range, type (payment/refund/chargeback), and status
+- Real-time transaction list updates based on selected customer
+- **Optimistic Updates**: Approve/Hold buttons immediately update transaction statuses in the UI before the API call completes
+  - Approve: Changes pending transactions to completed
+  - Hold: Changes pending transactions to failed (blocked)
+  - Automatic rollback on API errors
+- Loading states and empty states
+
+### Feature Flags
+Persisted feature flags (saved to localStorage) control:
+
+1. **Dashboard View**: Switch between View 1 (3-column) and View 2 (vertical stack)
+2. **KYC Engine Version**: Toggle between v1 and v2 rule engines
+3. **Component Outlines**: Visual debugging tool to highlight UI vs business logic components
+
+### Component Outlines
+A visual debugging feature that displays:
+- **Green outlines**: UI components (marked with `data-component`)
+- **Pink outlines**: Business logic components (marked with `data-business-logic`)
+- **Both**: Components that have both UI and business logic
+- Legacy components can use `data-no-highlights` to exclude them from outline styling
+
+## 🛠️ Technologies
+
+- **React 19** - UI library
+- **TypeScript** - Type safety
+- **Vite** - Build tool and dev server
+- **TanStack Query** - Data fetching, caching, and synchronization with optimistic updates
+- **Zustand** - Lightweight state management with localStorage persistence
+- **React Hook Form** - Form state management
+- **Zod** - Schema validation
+- **Tailwind CSS** - Utility-first CSS framework
+- **Babel** - AST manipulation for build-time code injection
+
+## 🔧 Custom Vite Plugin
+
+The project includes a custom Vite plugin (`vite-plugin-component-attributes.ts`) that automatically injects attributes during build:
+
+- **`data-component={componentName}`**: Added to the first JSX element of ALL components
+- **`data-business-logic={filename}`**: Added only if the component uses hooks other than `useRef`, `useEffect`, or `useMemo`
+
+This enables visual debugging of component boundaries and business logic placement.
+
+## 🎨 UI Features
+
+### Floating Feature Flags Panel
+- Hover over the bottom-right corner to reveal the gear icon button
+- Click to open/close the feature flags panel
+- Built with HTML `<dialog>` element for native backdrop and accessibility
+- Backdrop blur effect (no darkening overlay)
+- Click outside the panel or press ESC to close
+- Panel stays visible when open
+- Smooth animations and transitions
+- Settings persisted to localStorage
+
+### Layout Switching
+- **View 1**: Traditional 3-column layout (Customer Search | Transactions | KYC Decision)
+- **View 2**: Vertical workflow layout (Search/Filters → Transactions → KYC Decision)
+
+### Visual Indicators
+- KYC version badges (v1/v2) displayed on decision panels
+- Color-coded decision badges (approve/manual_review/deny)
+- Loading states and empty states throughout
+
+## 📝 Usage Examples
+
+### Switching KYC Engine Versions
+1. Hover over the bottom-right corner to reveal the gear icon
+2. Click the gear icon to open the feature flags panel
+3. Toggle between "v1" and "v2" KYC Engine Version
+4. Select a customer to see how different rule engines affect the decision
+
+### Viewing Component Outlines
+1. Open the feature flags panel
+2. Toggle "Show Component Outlines" to ON
+3. Green outlines show UI components, pink outlines show business logic
+
+### Testing Legacy Integration
+1. Use the customer search component (left panel in View 1, top in View 2)
+2. The legacy component (`LegacyCustomerSearch`) dispatches custom events
+3. The `CustomerSearch` component listens to these events and converts them to React callbacks, demonstrating clean integration patterns
+
+### Testing Optimistic Updates
+1. Select a customer with pending transactions
+2. Click "Approve" or "Hold" button in the KYC Decision panel
+3. Notice that transaction statuses update immediately before the API call completes
+4. If the API call fails, the UI automatically rolls back to the previous state
+
+## 🧪 Development Notes
+
+### Data Flow
+
+1. User selects a customer → Legacy component dispatches event
+2. CustomerSearch component catches event → Updates React state
+3. Customer state changes → Triggers KYC evaluation via `useKycEngine`
+4. KYC result updates → UI reflects new decision
+5. Transactions refetch → Filtered by selected customer
+6. User clicks Approve/Hold → Optimistic update to transaction cache → API call → Refetch to sync with server
+
+### Accessibility
+
+The application follows WCAG AA accessibility standards:
+- All form inputs have associated labels (`htmlFor`/`id`)
+- Proper heading hierarchy (h1 → h2 → h3)
+- Semantic HTML (`<section>`, `<header>`, proper `<label>` elements)
+- ARIA labels for icon-only buttons
+- Sufficient color contrast ratios (text-gray-600/700 instead of text-gray-400)
+- Proper dialog implementation with backdrop and keyboard navigation
+- Table with `aria-label` attributes
+
+### SEO
+
+- Meta description tag for search engine optimization
+- Valid `robots.txt` file in `public/` directory
+- Descriptive page title
+- Semantic HTML structure for better crawling
+
+### Legacy Integration Notes
+
+The `LegacyCustomerSearch` component simulates a legacy micro-frontend. In a production environment:
+- Would integrate with frameworks like single-spa for lifecycle management (mount, unmount, update)
+- Would handle coordination between legacy app lifecycle and React lifecycle
+- The `CustomerSearch` wrapper component demonstrates how to bridge event-based communication to modern React patterns
+
+### Feature Flag Persistence
+Feature flags are automatically saved to localStorage with the key `feature-flags-storage`. Settings persist across page refreshes.
+
+### Component Detection
+The Vite plugin uses Babel AST parsing to:
+- Detect React components (function declarations and arrow functions)
+- Identify hook usage
+- Find JSX return statements (handles multiple returns, early returns, fragments)
+- Inject attributes without modifying source code manually
+
+## 📚 Code Examples
+
+### Using Feature Flags
+```typescript
+import { useFeatureFlags } from '../state/featureFlags';
+
+const { kycVersion, view, setKycVersion, showComponentOutlines, setShowComponentOutlines } = useFeatureFlags();
+```
+
+### Using KYC Engine
+```typescript
+import { useKycEngine } from '../logic/useKycEngine';
+
+const kycEngine = useKycEngine();
+const result = kycEngine.evaluate({
+  riskScore: 75,
+  country: 'US',
+  isPep: false,
+  // ... other inputs
+});
+```
+
+### Optimistic Updates with TanStack Query
+```typescript
+import { useQueryClient } from '@tanstack/react-query';
+
+const queryClient = useQueryClient();
+
+// Optimistically update transaction cache
+queryClient.setQueryData(['transactions', filters, customerId], (oldData) => {
+  if (!oldData) return oldData;
+  return {
+    ...oldData,
+    transactions: oldData.transactions.map(t =>
+      t.status === 'pending' ? { ...t, status: 'completed' } : t
+    ),
+  };
+});
+
+// On error, rollback
+if (previousData) {
+  queryClient.setQueryData(['transactions', filters, customerId], previousData);
+}
+```
+
+### Legacy Component Integration
+```typescript
+// Legacy component dispatches events
+dispatchEvent(new CustomEvent('customer:select', { detail: customer }));
+
+// CustomerSearch component listens and converts to React
+useEffect(() => {
+  const handler = (e: CustomEvent) => onCustomerSelect(e.detail);
+  container.addEventListener('customer:select', handler);
+  return () => container.removeEventListener('customer:select', handler);
+}, [onCustomerSelect]);
+```
+
+## 🔍 Debugging
+
+### React Query DevTools
+The project includes React Query DevTools package, but it's currently commented out in `src/main.tsx`. To enable:
+```typescript
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+// ...
+<ReactQueryDevtools />
+```
+
+### Component Outlines
+Enable component outlines in the feature flags panel to visually distinguish:
+- Where UI components are rendered
+- Where business logic is executed
+- Component boundaries and data flow
+
+## 📄 License
+
+This project is a demonstration/example application.
+
+## 🤝 Contributing
+
+This is an educational example project demonstrating architectural patterns and best practices for React applications.
+
+```
+
+---
+
+
+## eslint.config.js
+
+**Summary:** This file defines the configuration for ESLint, specifying the files to analyze, extensions to use, and language options.
+
+**Imports:**
+- import js from '@eslint/js'
+- import globals from 'globals'
+- import reactHooks from 'eslint-plugin-react-hooks'
+- import reactRefresh from 'eslint-plugin-react-refresh'
+- import tseslint from 'typescript-eslint'
+- import { defineConfig, globalIgnores } from 'eslint/config'
+
+**Exports:**
+- export default defineConfig
+
+**Functions:**
+- `defineConfig`: Defines the configuration for ESLint.
+- `globalIgnores`: Returns an array of glob patterns to ignore in the project.
+
+**Abstractions:**
+- js.configs.recommended
+- tseslint.configs.recommended
+- reactHooks.configs['recommended-latest']
+- reactRefresh.configs.vite
+
+**Full Code:**
+```
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import tseslint from 'typescript-eslint'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.recommended,
+      reactHooks.configs['recommended-latest'],
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+    },
+  },
+])
+
+```
+
+---
+
+
+## index.html
+
+**Summary:** The purpose of this file is to serve as the entry point for a React-based web application, setting up the HTML document with necessary metadata and importing the main application code.
+
+**Imports:**
+- /src/main.tsx
+
+**Functions:**
+- `null`: Initializes the HTML document with the necessary metadata and sets up the React application.
+
+**Abstractions:**
+- React component tree
+- Vite.js module system
+
+**Full Code:**
+```
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Payments Operations Dashboard - Manage customer KYC decisions, risk scoring, and transaction monitoring with modern React architecture and legacy system integration." />
+    <title>Payments Operations Dashboard</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
+```
+
+---
+
+
+## package-lock.json
+
+**Summary:** Analysis failed
+
+**Full Code:**
+```
 {
   "name": "basic-example",
   "version": "0.0.0",
@@ -14,7 +592,6 @@
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
         "react-hook-form": "^7.66.0",
-        "react-router-dom": "^7.9.5",
         "tailwindcss": "^4.1.16",
         "zod": "^4.1.12",
         "zustand": "^5.0.8"
@@ -2252,15 +2829,6 @@
       "dev": true,
       "license": "MIT"
     },
-    "node_modules/cookie": {
-      "version": "1.0.2",
-      "resolved": "https://registry.npmjs.org/cookie/-/cookie-1.0.2.tgz",
-      "integrity": "sha512-9Kr/j4O16ISv8zBBhJoi4bXOYNTkFLOqSL3UDB0njXxCXNezjeyVrJyGOWtgfs/q2km1gwBcfH8q1yEGoMYunA==",
-      "license": "MIT",
-      "engines": {
-        "node": ">=18"
-      }
-    },
     "node_modules/cross-spawn": {
       "version": "7.0.6",
       "resolved": "https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.6.tgz",
@@ -3538,44 +4106,6 @@
         "node": ">=0.10.0"
       }
     },
-    "node_modules/react-router": {
-      "version": "7.9.5",
-      "resolved": "https://registry.npmjs.org/react-router/-/react-router-7.9.5.tgz",
-      "integrity": "sha512-JmxqrnBZ6E9hWmf02jzNn9Jm3UqyeimyiwzD69NjxGySG6lIz/1LVPsoTCwN7NBX2XjCEa1LIX5EMz1j2b6u6A==",
-      "license": "MIT",
-      "dependencies": {
-        "cookie": "^1.0.1",
-        "set-cookie-parser": "^2.6.0"
-      },
-      "engines": {
-        "node": ">=20.0.0"
-      },
-      "peerDependencies": {
-        "react": ">=18",
-        "react-dom": ">=18"
-      },
-      "peerDependenciesMeta": {
-        "react-dom": {
-          "optional": true
-        }
-      }
-    },
-    "node_modules/react-router-dom": {
-      "version": "7.9.5",
-      "resolved": "https://registry.npmjs.org/react-router-dom/-/react-router-dom-7.9.5.tgz",
-      "integrity": "sha512-mkEmq/K8tKN63Ae2M7Xgz3c9l9YNbY+NHH6NNeUmLA3kDkhKXRsNb/ZpxaEunvGo2/3YXdk5EJU3Hxp3ocaBPw==",
-      "license": "MIT",
-      "dependencies": {
-        "react-router": "7.9.5"
-      },
-      "engines": {
-        "node": ">=20.0.0"
-      },
-      "peerDependencies": {
-        "react": ">=18",
-        "react-dom": ">=18"
-      }
-    },
     "node_modules/resolve-from": {
       "version": "4.0.0",
       "resolved": "https://registry.npmjs.org/resolve-from/-/resolve-from-4.0.0.tgz",
@@ -3677,12 +4207,6 @@
       "bin": {
         "semver": "bin/semver.js"
       }
-    },
-    "node_modules/set-cookie-parser": {
-      "version": "2.7.2",
-      "resolved": "https://registry.npmjs.org/set-cookie-parser/-/set-cookie-parser-2.7.2.tgz",
-      "integrity": "sha512-oeM1lpU/UvhTxw+g3cIfxXHyJRc/uidd3yK1P242gzHds0udQBYzs3y8j4gCCW+ZJ7ad0yctld8RYO+bdurlvw==",
-      "license": "MIT"
     },
     "node_modules/shebang-command": {
       "version": "2.0.0",
@@ -4120,3 +4644,3098 @@
     }
   }
 }
+
+```
+
+---
+
+
+## package.json
+
+**Summary:** This file defines the metadata and dependencies for a Node.js project using Vite as the build tool.
+
+**Imports:**
+- @hookform/resolvers
+- @tailwindcss/vite
+- @tanstack/react-query
+- react
+- react-dom
+- react-hook-form
+- tailwindcss
+- zod
+- zustand
+- @babel/generator
+- @babel/parser
+- @babel/traverse
+- @babel/types
+- @eslint/js
+- @tanstack/react-query-devtools
+- @types/node
+- @types/react
+- @types/react-dom
+- @vitejs/plugin-react
+
+**Exports:**
+- dev
+- build
+- lint
+- preview
+
+**Functions:**
+- `dev`: Runs the development server with Vite
+- `build`: Compiles and builds the application with TSC and Vite
+- `lint`: Lints the code using ESLint
+- `preview`: Starts a preview server with Vite
+
+**Abstractions:**
+- private
+- type: module
+- scripts
+- dependencies
+- devDependencies
+
+**Full Code:**
+```
+{
+  "name": "basic-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@tailwindcss/vite": "^4.1.16",
+    "@tanstack/react-query": "^5.90.6",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-hook-form": "^7.66.0",
+    "tailwindcss": "^4.1.16",
+    "zod": "^4.1.12",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@babel/generator": "^7.28.5",
+    "@babel/parser": "^7.28.5",
+    "@babel/traverse": "^7.28.5",
+    "@babel/types": "^7.28.5",
+    "@eslint/js": "^9.36.0",
+    "@tanstack/react-query-devtools": "^5.90.2",
+    "@types/node": "^24.6.0",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "eslint": "^9.36.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.22",
+    "globals": "^16.4.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.45.0",
+    "vite": "^7.1.7"
+  }
+}
+
+```
+
+---
+
+
+## src\App.css
+
+**Summary:** This file imports the Tailwind CSS framework, which is used for styling and layout purposes.
+
+**Imports:**
+- [object Object]
+
+**Abstractions:**
+- Tailwind CSS
+
+**Full Code:**
+```
+@import "tailwindcss";
+```
+
+---
+
+
+## src\App.tsx
+
+**Summary:** This file serves as the entry point for the application, importing and exporting the necessary components and styles.
+
+**Imports:**
+- import { PaymentsOpsDashboard } from './views/dashboard/PaymentsOpsDashboard';
+- import './App.css';
+
+**Exports:**
+- export default App;
+
+**Functions:**
+- `App`: The main application component, rendering the PaymentsOpsDashboard.
+
+**Full Code:**
+```
+import { PaymentsOpsDashboard } from './views/dashboard/PaymentsOpsDashboard';
+import './App.css';
+
+function App() {
+  return <PaymentsOpsDashboard />;
+}
+
+export default App;
+
+```
+
+---
+
+
+## src\api\transactionsApi.ts
+
+**Summary:** This file provides an API for managing transactions, including fetching transactions, approving KYC decisions, requesting documents, and holding KYC decisions. It uses mock data to simulate real-world API calls.
+
+**Exports:**
+- export interface Transaction
+- export interface TransactionFilters
+- export interface TransactionsResponse
+- export async function fetchTransactions
+- export async function approveKycDecision
+- export async function requestKycDocuments
+- export async function holdKycDecision
+
+**Functions:**
+- `fetchTransactions`: Fetches transactions based on provided filters and returns a paginated response.
+- `approveKycDecision`: Simulates approving a KYC decision for a customer.
+- `requestKycDocuments`: Simulates requesting documents for a customer's KYC process.
+- `holdKycDecision`: Simulates placing a hold on a customer's KYC decision.
+
+**Abstractions:**
+- Transaction
+- TransactionFilters
+- TransactionsResponse
+
+**Full Code:**
+```
+export interface Transaction {
+  id: string;
+  customerId: string;
+  customerName: string;
+  amount: number;
+  currency: string;
+  type: 'payment' | 'refund' | 'chargeback';
+  status: 'completed' | 'pending' | 'failed';
+  date: string;
+  description?: string;
+}
+
+export interface TransactionFilters {
+  customerId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  type?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface TransactionsResponse {
+  transactions: Transaction[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/**
+ * Mock API function for fetching transactions
+ * In a real app, this would call an actual API endpoint
+ */
+export async function fetchTransactions(
+  filters: TransactionFilters = {}
+): Promise<TransactionsResponse> {
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  // Mock data
+  const mockTransactions: Transaction[] = [
+    {
+      id: 'T-001',
+      customerId: 'C-002',
+      customerName: 'Emily Chen',
+      amount: 1250.50,
+      currency: 'USD',
+      type: 'payment',
+      status: 'completed',
+      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      description: 'Payment for services',
+    },
+    {
+      id: 'T-002',
+      customerId: 'C-002',
+      customerName: 'Emily Chen',
+      amount: 3200.00,
+      currency: 'USD',
+      type: 'payment',
+      status: 'pending',
+      date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      description: 'Large payment',
+    },
+    {
+      id: 'T-003',
+      customerId: 'C-001',
+      customerName: 'Jacob White',
+      amount: 450.25,
+      currency: 'USD',
+      type: 'payment',
+      status: 'completed',
+      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      description: 'Regular payment',
+    },
+    {
+      id: 'T-004',
+      customerId: 'C-003',
+      customerName: 'Samir Khan',
+      amount: 890.00,
+      currency: 'USD',
+      type: 'refund',
+      status: 'completed',
+      date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+      description: 'Refund processed',
+    },
+  ];
+
+  // Apply filters
+  let filtered = mockTransactions;
+
+  if (filters.customerId) {
+    filtered = filtered.filter((t) => t.customerId === filters.customerId);
+  }
+
+  if (filters.type) {
+    filtered = filtered.filter((t) => t.type === filters.type);
+  }
+
+  if (filters.status) {
+    filtered = filtered.filter((t) => t.status === filters.status);
+  }
+
+  if (filters.dateFrom) {
+    const fromDate = new Date(filters.dateFrom);
+    filtered = filtered.filter((t) => new Date(t.date) >= fromDate);
+  }
+
+  if (filters.dateTo) {
+    const toDate = new Date(filters.dateTo);
+    filtered = filtered.filter((t) => new Date(t.date) <= toDate);
+  }
+
+  // Pagination
+  const page = filters.page || 1;
+  const pageSize = filters.pageSize || 10;
+  const start = (page - 1) * pageSize;
+  const end = start + pageSize;
+  const paginated = filtered.slice(start, end);
+
+  return {
+    transactions: paginated,
+    total: filtered.length,
+    page,
+    pageSize,
+  };
+}
+
+/**
+ * Mock API function for approving a KYC decision
+ */
+export async function approveKycDecision(customerId: string): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  console.log(`KYC approved for customer ${customerId}`);
+}
+
+/**
+ * Mock API function for requesting documents
+ */
+export async function requestKycDocuments(customerId: string): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  console.log(`Documents requested for customer ${customerId}`);
+}
+
+/**
+ * Mock API function for placing a hold
+ */
+export async function holdKycDecision(customerId: string): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  console.log(`KYC decision held for customer ${customerId}`);
+}
+
+
+```
+
+---
+
+
+## src\components\FeatureFlagsPanel.tsx
+
+**Summary:** The FeatureFlagsPanel component manages feature flags and provides a UI for toggling different features. It uses the useFeatureFlags hook to retrieve the current state of the feature flags and updates it when the user interacts with the panel.
+
+**Imports:**
+- import { useEffect, useRef } from 'react'
+- import { useFeatureFlags } from '../state/featureFlags'
+
+**Exports:**
+- export function FeatureFlagsPanel({ isOpen, onClose }: FeatureFlagsPanelProps)
+
+**Functions:**
+- `useEffect`: Runs a side effect after rendering the component
+- `handleClose`: Closes the feature flags panel and calls the onClose callback
+- `handleCancel`: Handles the cancel event (ESC key or backdrop click) by closing the panel and calling the onClose callback
+- `handleDialogClick`: Handles a click on the dialog element by closing it if the click target is the dialog itself (backdrop)
+
+**Abstractions:**
+- interface FeatureFlagsPanelProps
+- interface FeatureFlagsPanelProps
+- class HTMLDialogElement
+
+**Full Code:**
+```
+import { useEffect, useRef } from 'react';
+import { useFeatureFlags } from '../state/featureFlags';
+
+interface FeatureFlagsPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+/**
+ * Feature Flags Panel - Panel content for managing feature flags
+ * Uses HTML dialog element with backdrop for click-outside-to-close functionality
+ */
+export function FeatureFlagsPanel({ isOpen, onClose }: FeatureFlagsPanelProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const {
+    view,
+    setView,
+    kycVersion,
+    setKycVersion,
+    showComponentOutlines,
+    setShowComponentOutlines,
+  } = useFeatureFlags();
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen) {
+      dialog.showModal();
+    } else {
+      dialog.close();
+    }
+  }, [isOpen]);
+
+  // Handle close event
+  const handleClose = () => {
+    onClose();
+  };
+
+  // Handle cancel event (ESC key or backdrop click)
+  // Clicking on the backdrop triggers the cancel event
+  const handleCancel = (e: React.SyntheticEvent<HTMLDialogElement>) => {
+    e.preventDefault();
+    onClose();
+  };
+
+  // Handle click on dialog - if clicked element is the dialog itself (backdrop), close it
+  const handleDialogClick = (e: React.MouseEvent<HTMLDialogElement>) => {
+    // If the click target is the dialog element itself (not its children), it's a backdrop click
+    if (e.target === dialogRef.current) {
+      onClose();
+    }
+  };
+
+  return (
+    <dialog
+      ref={dialogRef}
+      onClose={handleClose}
+      onCancel={handleCancel}
+      onClick={handleDialogClick}
+      className="w-max bg-white rounded-lg shadow-2xl border-2 border-gray-200 p-6 max-h-[80vh] overflow-y-auto backdrop:backdrop-blur-sm fixed m-auto"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold text-gray-900">Feature Flags</h2>
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600 transition-colors"
+          aria-label="Close feature flags panel"
+          title="Close"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div className="space-y-3">
+      {/* View Toggle */}
+      <div className="flex items-center gap-4 p-4 bg-white rounded-lg border-2 border-gray-200">
+        <span className="text-sm font-semibold text-gray-700">Dashboard View:</span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setView('view1')}
+            className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${
+              view === 'view1'
+                ? 'bg-blue-600 text-white shadow-lg scale-105 ring-2 ring-blue-300'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            View 1
+          </button>
+          <button
+            onClick={() => setView('view2')}
+            className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${
+              view === 'view2'
+                ? 'bg-purple-600 text-white shadow-lg scale-105 ring-2 ring-purple-300'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            View 2
+          </button>
+        </div>
+        <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+          view === 'view1' 
+            ? 'bg-blue-100 text-blue-800 border border-blue-300' 
+            : 'bg-purple-100 text-purple-800 border border-purple-300'
+        }`}>
+          Active: {view === 'view1' ? 'View 1' : 'View 2'}
+        </div>
+      </div>
+
+      {/* KYC Engine Version Toggle */}
+      <div className="flex items-center gap-4 p-4 bg-white rounded-lg border-2 border-gray-200">
+        <span className="text-sm font-semibold text-gray-700">KYC Engine Version:</span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setKycVersion('v1')}
+            className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${
+              kycVersion === 'v1'
+                ? 'bg-blue-600 text-white shadow-lg scale-105 ring-2 ring-blue-300'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            v1
+          </button>
+          <button
+            onClick={() => setKycVersion('v2')}
+            className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${
+              kycVersion === 'v2'
+                ? 'bg-purple-600 text-white shadow-lg scale-105 ring-2 ring-purple-300'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            v2
+          </button>
+        </div>
+        <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+          kycVersion === 'v1' 
+            ? 'bg-blue-100 text-blue-800 border border-blue-300' 
+            : 'bg-purple-100 text-purple-800 border border-purple-300'
+        }`}>
+          Active: {kycVersion.toUpperCase()}
+        </div>
+        <span className="text-xs text-gray-600 ml-auto">
+          (Toggle to see how logic changes affect decision)
+        </span>
+      </div>
+
+      {/* Component Outlines Toggle */}
+      <div className="flex items-center gap-4 p-4 bg-white rounded-lg border-2 border-gray-200">
+        <label htmlFor="toggle-component-outlines" className="text-sm font-semibold text-gray-700">
+          Show Component Outlines:
+        </label>
+        <div className="flex items-center gap-2">
+          <label htmlFor="toggle-component-outlines" className="flex items-center gap-2 cursor-pointer">
+            <input
+              id="toggle-component-outlines"
+              type="checkbox"
+              checked={showComponentOutlines}
+              onChange={(e) => setShowComponentOutlines(e.target.checked)}
+              className="sr-only"
+              aria-label="Toggle component outlines visibility"
+            />
+            <span
+              role="switch"
+              aria-checked={showComponentOutlines}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                showComponentOutlines ? 'bg-blue-600' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  showComponentOutlines ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </span>
+            <span className="text-sm text-gray-600">
+              {showComponentOutlines ? 'On' : 'Off'}
+            </span>
+          </label>
+        </div>
+      </div>
+      </div>
+    </dialog>
+  );
+}
+
+
+```
+
+---
+
+
+## src\index.css
+
+**Summary:** This CSS file styles legacy components with a Windows-style scrollbar and provides custom styling for various elements, including those with specific data attributes.
+
+**Imports:**
+- @import 'tailwindcss';
+
+**Functions:**
+- `.legacy-scrollable`: Styles a legacy component with a Windows-style scrollbar
+- `.legacy-scrollable::-webkit-scrollbar`: Customizes the width of the scrollbar track
+- `.legacy-scrollable::-webkit-scrollbar-track`: Sets the background color and border of the scrollbar track
+- `.legacy-scrollable::-webkit-scrollbar-thumb`: Styles the scrollbar thumb with a specific background color and border
+- `.legacy-scrollable::-webkit-scrollbar-thumb:hover`: Changes the background color of the scrollbar thumb on hover
+- `.legacy-scrollable::-webkit-scrollbar-thumb:active`: Changes the border and box shadow of the scrollbar thumb when active
+- `.legacy-scrollable::-webkit-scrollbar-button`: Styles the scrollbar buttons (arrows) with a specific background color and border
+- `.legacy-scrollable::-webkit-scrollbar-button:vertical:start:decrement`: Customizes the arrow for the vertical scrollbar button
+- `.legacy-scrollable::-webkit-scrollbar-button:vertical:end:increment`: Customizes the arrow for the vertical scrollbar button
+- `body`: Sets the font family and margin of the body element
+- `:root`: Defines CSS variables for ring colors and sizes
+- `[data-component]`: Styles elements with a specific data attribute
+- `[data-business-logic]`: Styles elements with a specific data attribute
+- `[data-no-highlights]`: Excludes elements from outline styling if they have the data-no-highlights attribute
+
+**Abstractions:**
+- .legacy-scrollable
+- .legacy-scrollable::-webkit-scrollbar
+- .legacy-scrollable::-webkit-scrollbar-track
+- .legacy-scrollable::-webkit-scrollbar-thumb
+- .legacy-scrollable::-webkit-scrollbar-button
+- [data-component]
+- [data-business-logic]
+- [data-no-highlights]
+
+**Full Code:**
+```
+@import "tailwindcss";
+
+/* 90's Windows-style scrollbar for legacy components */
+.legacy-scrollable {
+  scrollbar-width: auto;
+  scrollbar-color: #808080 #C0C0C0;
+}
+
+.legacy-scrollable::-webkit-scrollbar {
+  width: 16px;
+}
+
+.legacy-scrollable::-webkit-scrollbar-track {
+  background: #C0C0C0;
+  border: 2px inset #C0C0C0;
+  border-top: 2px inset #FFFFFF;
+  border-left: 2px inset #FFFFFF;
+}
+
+.legacy-scrollable::-webkit-scrollbar-thumb {
+  background: #C0C0C0;
+  border: 2px outset #C0C0C0;
+  border-top: 2px outset #808080;
+  border-left: 2px outset #808080;
+  box-shadow: 
+    inset 1px 1px 0 #FFFFFF,
+    inset -1px -1px 0 #000000;
+}
+
+.legacy-scrollable::-webkit-scrollbar-thumb:hover {
+  background: #808080;
+}
+
+.legacy-scrollable::-webkit-scrollbar-thumb:active {
+  border: 2px inset #C0C0C0;
+  border-top: 2px inset #000000;
+  border-left: 2px inset #000000;
+  box-shadow: 
+    inset -1px -1px 0 #FFFFFF,
+    inset 1px 1px 0 #000000;
+}
+
+/* Scrollbar buttons (arrows) - Windows 95 style */
+.legacy-scrollable::-webkit-scrollbar-button {
+  display: block;
+  height: 16px;
+  width: 16px;
+  background: #C0C0C0;
+  border: 2px outset #C0C0C0;
+}
+
+.legacy-scrollable::-webkit-scrollbar-button:vertical:start:decrement {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cpath d='M6 4 L4 6 L6 8' stroke='%23000000' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.legacy-scrollable::-webkit-scrollbar-button:vertical:end:increment {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cpath d='M6 8 L8 6 L6 4' stroke='%23000000' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root {
+  --ring-green: transparent;
+  --ring-pink: transparent;
+  --ring-green-size: 10px;
+  --ring-pink-size: 4px;
+}
+
+/* Targeted Elements + Page */
+[data-component],
+[data-business-logic],
+html[data-component],
+html[data-business-logic],
+body[data-component],
+body[data-business-logic] {
+  position: relative;
+  z-index: 0;
+}
+
+/* Exclude elements with data-no-highlights from outline styling */
+[data-no-highlights],
+[data-no-highlights]::before,
+[data-no-highlights]::after {
+  box-shadow: none !important;
+}
+
+/* Common styles for both pseudo-elements */
+[data-component]:not([data-no-highlights])::before,
+[data-business-logic]:not([data-no-highlights])::before,
+[data-component]:not([data-no-highlights])::after,
+[data-business-logic]:not([data-no-highlights])::after,
+html[data-component]:not([data-no-highlights])::before,
+html[data-business-logic]:not([data-no-highlights])::before,
+html[data-component]:not([data-no-highlights])::after,
+html[data-business-logic]:not([data-no-highlights])::after,
+body[data-component]:not([data-no-highlights])::before,
+body[data-business-logic]:not([data-no-highlights])::before,
+body[data-component]:not([data-no-highlights])::after,
+body[data-business-logic]:not([data-no-highlights])::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 9999;
+}
+
+.show-component-outlines {
+  --ring-green: green;
+  --ring-pink: hotpink;
+  --ring-green-size: 10px;
+  --ring-pink-size: 4px;
+
+}
+/* Only green — before pseudo */
+[data-component]:not([data-business-logic]):not([data-no-highlights])::before,
+html[data-component]:not([data-business-logic]):not([data-no-highlights])::before,
+body[data-component]:not([data-business-logic]):not([data-no-highlights])::before {
+  box-shadow: inset 0 0 0 var(--ring-pink-size) var(--ring-green);
+}
+
+/* Only pink — after pseudo */
+[data-business-logic]:not([data-component]):not([data-no-highlights])::after,
+html[data-business-logic]:not([data-component]):not([data-no-highlights])::after,
+body[data-business-logic]:not([data-component]):not([data-no-highlights])::after {
+  box-shadow: inset 0 0 0 var(--ring-pink-size) var(--ring-pink);
+}
+
+/* Both: green via ::before, pink via ::after */
+[data-component][data-business-logic]:not([data-no-highlights])::before,
+html[data-component][data-business-logic]:not([data-no-highlights])::before,
+body[data-component][data-business-logic]:not([data-no-highlights])::before {
+  box-shadow: inset 0 0 0 var(--ring-green-size) var(--ring-green);
+}
+
+[data-component][data-business-logic]:not([data-no-highlights])::after,
+html[data-component][data-business-logic]:not([data-no-highlights])::after,
+body[data-component][data-business-logic]:not([data-no-highlights])::after {
+      box-shadow: inset 0 0 0 var(--ring-pink-size) var(--ring-pink);
+    }
+
+/* Dialog backdrop styling - blur only, no darkening */
+dialog::backdrop {
+      background-color: transparent;
+      backdrop-filter: blur(4px);
+    }
+
+```
+
+---
+
+
+## src\legacy\LegacyCustomerSearch.tsx
+
+**Summary:** Analysis failed
+
+**Full Code:**
+```
+import { useEffect, useRef, useState } from 'react';
+
+export interface Customer {
+  id: string;
+  name: string;
+  riskScore: number;
+  country: string;
+  isPep?: boolean;
+  sanctionsList?: boolean;
+}
+
+/**
+ * Legacy Customer Search Component
+ * This component dispatches custom events instead of using direct callbacks.
+ * This matches how legacy web components or micro-frontends typically work.
+ * 
+ * In a real scenario:
+ * - This would embed an actual legacy application, possibly via single-spa or similar
+ *   micro-frontend framework
+ * - The legacy app would be mounted/rendered within this container
+ * - Integration would handle lifecycle methods (mount, unmount, update) from the framework
+ * - Event communication would bridge between the legacy system and modern React app
+ * 
+ * For this demo, we simulate the legacy component's behavior with React.
+ */
+export function LegacyCustomerSearch() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [customers] = useState<Customer[]>([
+    { id: 'C-001', name: 'Jacob White', riskScore: 35, country: 'US', isPep: false },
+    { id: 'C-002', name: 'Emily Chen', riskScore: 62, country: 'CN', isPep: false },
+    { id: 'C-003', name: 'Samir Khan', riskScore: 78, country: 'PK', isPep: true },
+    { id: 'C-004', name: 'Michael Rodriguez', riskScore: 42, country: 'MX', isPep: false },
+    { id: 'C-005', name: 'Sarah Johnson', riskScore: 28, country: 'CA', isPep: false },
+    { id: 'C-006', name: 'Ahmed Hassan', riskScore: 71, country: 'EG', isPep: true },
+    { id: 'C-007', name: 'Priya Patel', riskScore: 55, country: 'IN', isPep: false },
+    { id: 'C-008', name: 'David Kim', riskScore: 39, country: 'KR', isPep: false },
+    { id: 'C-009', name: 'Maria Garcia', riskScore: 45, country: 'ES', isPep: false },
+    { id: 'C-010', name: 'James Wilson', riskScore: 33, country: 'GB', isPep: false },
+    { id: 'C-011', name: 'Yuki Tanaka', riskScore: 41, country: 'JP', isPep: false },
+    { id: 'C-012', name: 'Hans Mueller', riskScore: 38, country: 'DE', isPep: false },
+    { id: 'C-013', name: 'Sophie Martin', riskScore: 49, country: 'FR', isPep: false },
+    { id: 'C-014', name: 'Luigi Rossi', riskScore: 44, country: 'IT', isPep: false },
+    { id: 'C-015', name: 'Anna Kowalski', riskScore: 52, country: 'PL', isPep: false },
+    { id: 'C-016', name: 'Carlos Silva', riskScore: 58, country: 'BR', isPep: false },
+    { id: 'C-017', name: 'Lisa Anderson', riskScore: 31, country: 'AU', isPep: false },
+    { id: 'C-018', name: 'Mohammed Al-Rashid', riskScore: 68, country: 'SA', isPep: true },
+    { id: 'C-019', name: 'Jennifer Brown', riskScore: 36, country: 'US', isPep: false },
+    { id: 'C-020', name: 'Wei Zhang', riskScore: 64, country: 'CN', isPep: false },
+    { id: 'C-021', name: 'Rajesh Kumar', riskScore: 59, country: 'IN', isPep: false },
+    { id: 'C-022', name: 'Emma Thompson', riskScore: 43, country: 'GB', isPep: false },
+    { id: 'C-023', name: 'Ivan Petrov', riskScore: 66, country: 'RU', isPep: true },
+    { id: 'C-024', name: 'Amara Okafor', riskScore: 57, country: 'NG', isPep: false },
+    { id: 'C-025', name: 'Tomáš Novák', riskScore: 47, country: 'CZ', isPep: false },
+    { id: 'C-026', name: 'Olga Kowalczyk', riskScore: 54, country: 'PL', isPep: false },
+    { id: 'C-027', name: 'Fernando Santos', riskScore: 61, country: 'PT', isPep: false },
+    { id: 'C-028', name: 'Nina Bergström', riskScore: 40, country: 'SE', isPep: false },
+    { id: 'C-029', name: 'Marcus Johansson', riskScore: 46, country: 'SE', isPep: false },
+    { id: 'C-030', name: 'Fatima Al-Zahra', riskScore: 73, country: 'AE', isPep: true },
+    { id: 'C-031', name: 'Robert Taylor', riskScore: 34, country: 'US', isPep: false },
+    { id: 'C-032', name: 'Mei Lin', riskScore: 56, country: 'TW', isPep: false },
+    { id: 'C-033', name: 'Diego Martinez', riskScore: 50, country: 'AR', isPep: false },
+    { id: 'C-034', name: 'Chloe Dubois', riskScore: 48, country: 'FR', isPep: false },
+    { id: 'C-035', name: 'Oliver Schmidt', riskScore: 37, country: 'DE', isPep: false },
+    { id: 'C-036', name: 'Isabella Rossi', riskScore: 51, country: 'IT', isPep: false },
+    { id: 'C-037', name: 'Hiroshi Yamamoto', riskScore: 63, country: 'JP', isPep: false },
+    { id: 'C-038', name: 'Amanda Lee', riskScore: 29, country: 'SG', isPep: false },
+    { id: 'C-039', name: 'Ricardo Fernandez', riskScore: 60, country: 'CO', isPep: false },
+    { id: 'C-040', name: 'Katarina Novak', riskScore: 53, country: 'RS', isPep: false },
+    { id: 'C-041', name: 'Viktor Ivanov', riskScore: 69, country: 'BG', isPep: true },
+    { id: 'C-042', name: 'Aisha Mohammed', riskScore: 72, country: 'KE', isPep: true },
+    { id: 'C-043', name: 'Lucas Andersen', riskScore: 32, country: 'DK', isPep: false },
+    { id: 'C-044', name: 'Zara Khan', riskScore: 65, country: 'BD', isPep: false },
+    { id: 'C-045', name: 'Sebastian Larsson', riskScore: 41, country: 'SE', isPep: false },
+    { id: 'C-046', name: 'Anastasia Volkov', riskScore: 67, country: 'UA', isPep: true },
+    { id: 'C-047', name: 'Daniel Torres', riskScore: 39, country: 'CL', isPep: false },
+    { id: 'C-048', name: 'Sofia Hernandez', riskScore: 44, country: 'VE', isPep: false },
+    { id: 'C-049', name: 'Chen Wei', riskScore: 58, country: 'HK', isPep: false },
+    { id: 'C-050', name: 'Alexander Volkov', riskScore: 75, country: 'RU', isPep: true },
+    { id: 'C-051', name: 'Mia Johansson', riskScore: 30, country: 'NO', isPep: false },
+    { id: 'C-052', name: 'Ethan Martinez', riskScore: 35, country: 'PH', isPep: false },
+    { id: 'C-053', name: 'Leila Abbas', riskScore: 70, country: 'IQ', isPep: true },
+    { id: 'C-054', name: 'Nathan Brown', riskScore: 27, country: 'NZ', isPep: false },
+    { id: 'C-055', name: 'Grace O\'Connor', riskScore: 46, country: 'IE', isPep: false },
+  ]);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>(customers);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredCustomers(customers);
+    } else {
+      const term = searchTerm.toLowerCase();
+      setFilteredCustomers(
+        customers.filter(
+          (c) =>
+            c.name.toLowerCase().includes(term) ||
+            c.id.toLowerCase().includes(term)
+        )
+      );
+    }
+  }, [searchTerm, customers]);
+
+  const handleSearch = () => {
+    // Search is already handled by useEffect
+  };
+
+  const handleCustomerClick = (customer: Customer) => {
+    setSelectedCustomerId(customer.id);
+    // Legacy component dispatches custom events instead of calling callbacks
+    const event = new CustomEvent('customer:select', {
+      detail: customer,
+      bubbles: true,
+      cancelable: true,
+    });
+    if (containerRef.current) {
+      containerRef.current.dispatchEvent(event);
+    }
+  };
+
+  // In a real implementation, this would embed the actual legacy web component
+  // and listen for its custom events. For demo purposes, we create a React UI
+  // that simulates the legacy component's behavior.
+  return (
+    <div ref={containerRef} data-component="LegacyCustomerSearch" data-no-highlights className="legacy-customer-search p-4 bg-[#C0C0C0] border-2 border-t-white border-l-white border-r-gray-600 border-b-gray-600 shadow-[inset_1px_1px_0_#808080,inset_-1px_-1px_0_#ffffff]">
+      {/* 90's Windows-style title bar */}
+      <div className="bg-[#000080] text-white px-2 py-1 mb-3 font-bold text-sm flex items-center">
+        <span className="mr-2">🔍</span>
+        Customer Search (Mock Embedded / Micro Frontend)
+      </div>
+      {/* 90's style input field */}
+      <div className="mb-3">
+        <label htmlFor="legacy-customer-search-input" className="block text-xs font-bold text-gray-800 mb-1">
+          Search Customer:
+        </label>
+        <input
+          id="legacy-customer-search-input"
+          type="text"
+          placeholder="Enter name or ID"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSearch();
+            }
+          }}
+          className="w-full px-2 py-1.5 bg-white border-2 border-t-gray-400 border-l-gray-400 border-r-white border-b-white shadow-[inset_2px_2px_0_#000000] text-sm font-mono focus:outline-none focus:border-t-blue-700 focus:border-l-blue-700"
+          aria-label="Search for customer by name or ID"
+        />
+      </div>
+      {/* 90's style button */}
+      <button
+        onClick={handleSearch}
+        className="w-full mb-3 px-3 py-2 bg-[#C0C0C0] border-2 border-t-white border-l-white border-r-gray-600 border-b-gray-600 text-sm font-bold text-gray-900 shadow-[2px_2px_0_#000000] active:shadow-[inset_1px_1px_0_#000000] active:border-t-gray-600 active:border-l-gray-600 active:border-r-white active:border-b-white hover:bg-[#D4D0C8]"
+        aria-label="Search for customers"
+      >
+        [ Search ]
+      </button>
+      {/* 90's style list box with scrollbar */}
+      <div className="legacy-scrollable bg-white border-2 border-t-gray-400 border-l-gray-400 border-r-white border-b-white p-1 shadow-[inset_2px_2px_0_#000000] max-h-64 overflow-y-auto">
+        <div className="space-y-1">
+          {filteredCustomers.length === 0 ? (
+            <div className="p-2 text-xs text-gray-600 font-mono">No customers found</div>
+          ) : (
+            filteredCustomers.map((customer) => (
+              <div
+                key={customer.id}
+                onClick={() => handleCustomerClick(customer)}
+                className={`px-2 py-1.5 cursor-pointer text-xs font-mono border border-dashed ${
+                  selectedCustomerId === customer.id
+                    ? 'bg-[#000080] text-white border-blue-300'
+                    : 'bg-white text-black border-gray-300 hover:bg-[#E8E8E8]'
+                }`}
+              >
+                <div className="font-bold">{customer.name}</div>
+                <div className={selectedCustomerId === customer.id ? 'text-blue-200' : 'text-gray-600'}>
+                  ID: {customer.id}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+```
+
+---
+
+
+## src\logic\kycRules.v1.ts
+
+**Summary:** KYC Rules v1 - Simple rule-based evaluation for determining KYC decisions based on risk score and country.
+
+**Exports:**
+- export type KycDecision = 'approve' | 'manual_review' | 'deny';
+- export interface KycInputBase { riskScore: number; country: string; amount?: number; }
+- export interface KycInput extends KycInputBase { version: 'v1'; }
+- export interface KycResult { decision: KycDecision; reasons: string[]; }
+- export function evaluateKycV1(input: KycInput): KycResult;
+
+**Functions:**
+- `evaluateKycV1`: Evaluates KYC input based on v1 rules and returns a decision with reasons.
+
+**Abstractions:**
+- type KycDecision
+- interface KycInputBase
+- interface KycInput
+- interface KycResult
+
+**Full Code:**
+```
+export type KycDecision = 'approve' | 'manual_review' | 'deny';
+
+// Base input fields for v1 (without discriminator)
+export interface KycInputBase {
+  riskScore: number;
+  country: string;
+  amount?: number;
+}
+
+// Discriminated union type for v1
+export interface KycInput extends KycInputBase {
+  version: 'v1';
+}
+
+export interface KycResult {
+  decision: KycDecision;
+  reasons: string[];
+}
+
+/**
+ * KYC Rules v1 - Simple rule-based evaluation
+ * - riskScore >= 80 => deny
+ * - riskScore 50-79 => manual_review
+ * - Certain countries => deny
+ */
+export function evaluateKycV1(input: KycInput): KycResult {
+  const reasons: string[] = [];
+  let decision: KycDecision = 'approve';
+
+  // High risk score threshold
+  if (input.riskScore >= 80) {
+    decision = 'deny';
+    reasons.push('Risk score 80+');
+    return { decision, reasons };
+  }
+
+  // Medium risk score threshold
+  if (input.riskScore >= 50 && input.riskScore < 80) {
+    decision = 'manual_review';
+    reasons.push('Risk score 50-79');
+  }
+
+  // Country-based restrictions
+  const restrictedCountries = ['XX', 'YY', 'ZZ']; // Placeholder countries
+  if (restrictedCountries.includes(input.country)) {
+    decision = 'deny';
+    reasons.push(`Restricted country: ${input.country}`);
+    return { decision, reasons };
+  }
+
+  if (decision === 'approve' && input.riskScore < 50) {
+    reasons.push('Low risk score');
+  }
+
+  return { decision, reasons };
+}
+
+
+```
+
+---
+
+
+## src\logic\kycRules.v2.ts
+
+**Summary:** This file provides the v2 rules for evaluating KYC inputs, including PEP checks, amount thresholds, velocity thresholds, and sanctions list.
+
+**Imports:**
+- import type { KycDecision, KycInputBase, KycResult } from './kycRules.v1';
+
+**Exports:**
+- export interface KycInputV2Base extends KycInputBase;
+- export interface KycInputV2 extends KycInputV2Base;
+- export type KycInput = import('./kycRules.v1').KycInput;
+- export function evaluateKycV2(input: KycInputV2): KycResult;
+
+**Functions:**
+- `evaluateKycV2`: Evaluates the KYC input based on the v2 rules and returns a decision and reasons.
+
+**Abstractions:**
+- interface KycInputBase
+- interface KycInputV2Base
+- interface KycInputV2
+- type KycDecision
+- type KycResult
+
+**Full Code:**
+```
+import type { KycDecision, KycInputBase, KycResult } from './kycRules.v1';
+
+// Base input fields for v2 (extends v1 base)
+export interface KycInputV2Base extends KycInputBase {
+  isPep?: boolean; // Politically Exposed Person
+  velocity?: number; // Number of transactions in last 24h
+  sanctionsList?: boolean; // On sanctions list
+}
+
+// Discriminated union type for v2
+export interface KycInputV2 extends KycInputV2Base {
+  version: 'v2';
+}
+
+// Re-export v1 type for convenience
+export type KycInput = import('./kycRules.v1').KycInput;
+
+/**
+ * KYC Rules v2 - Enhanced rule-based evaluation
+ * Adds PEP checks, amount thresholds, velocity thresholds, and sanctions list
+ */
+export function evaluateKycV2(input: KycInputV2): KycResult {
+  const reasons: string[] = [];
+  let decision: KycDecision = 'approve';
+
+  // Sanctions list check - highest priority
+  if (input.sanctionsList) {
+    decision = 'deny';
+    reasons.push('On sanctions list');
+    return { decision, reasons };
+  }
+
+  // PEP check - requires manual review
+  if (input.isPep) {
+    decision = 'manual_review';
+    reasons.push('PEP (Politically Exposed Person)');
+  }
+
+  // High risk score threshold (lowered for v2)
+  if (input.riskScore >= 75) {
+    decision = 'deny';
+    reasons.push('Risk score 75+');
+    return { decision, reasons };
+  }
+
+  // Medium risk score threshold
+  if (input.riskScore >= 50 && input.riskScore < 75) {
+    if (decision === 'approve') {
+      decision = 'manual_review';
+    }
+    reasons.push('Risk score 50-74');
+  }
+
+  // Amount threshold check
+  const amountThreshold = 100000;
+  if (input.amount && input.amount > amountThreshold) {
+    if (decision === 'approve') {
+      decision = 'manual_review';
+    }
+    reasons.push(`Amount exceeds ${amountThreshold.toLocaleString()}`);
+  }
+
+  // Velocity threshold check
+  const velocityThreshold = 10;
+  if (input.velocity && input.velocity > velocityThreshold) {
+    if (decision === 'approve') {
+      decision = 'manual_review';
+    }
+    reasons.push(`High transaction velocity: ${input.velocity} in 24h`);
+  }
+
+  // Country-based restrictions (same as v1 but can be extended)
+  const restrictedCountries = ['XX', 'YY', 'ZZ'];
+  if (restrictedCountries.includes(input.country)) {
+    decision = 'deny';
+    reasons.push(`Restricted country: ${input.country}`);
+    return { decision, reasons };
+  }
+
+  // Combined risk factors
+  if (input.riskScore >= 60 && input.amount && input.amount > amountThreshold * 0.5) {
+    if (decision === 'approve') {
+      decision = 'manual_review';
+    }
+    if (!reasons.some(r => r.includes('Risk score') || r.includes('Amount'))) {
+      reasons.push('Combined risk factors: medium risk score + high amount');
+    }
+  }
+
+  if (decision === 'approve' && input.riskScore < 50 && !input.isPep) {
+    reasons.push('Low risk profile');
+  }
+
+  return { decision, reasons };
+}
+
+
+```
+
+---
+
+
+## src\logic\useKycEngine.ts
+
+**Summary:** This file provides a custom hook (useKycEngine) that selects the appropriate KYC rule version based on feature flags and exposes an evaluate method to use the correct rules.
+
+**Imports:**
+- import { useMemo } from 'react'
+- import { useFeatureFlags } from '../state/featureFlags'
+- import { evaluateKycV1, type KycInput as KycInputV1, type KycInputBase, type KycResult } from './kycRules.v1'
+- import { evaluateKycV2, type KycInputV2, type KycInputV2Base } from './kycRules.v2'
+
+**Exports:**
+- export type KycInput = KycInputV1 | KycInputV2;
+- export type KycInputWithoutVersion = KycInputBase & Partial<KycInputV2Base>;
+- export interface UseKycEngine { evaluate: (input: KycInputWithoutVersion) => KycResult; version: 'v1' | 'v2'; }
+- export function useKycEngine(): UseKycEngine;
+
+**Functions:**
+- `useKycEngine`: Custom hook that selects the appropriate KYC rule version based on feature flag and exposes an evaluate method that uses the correct rules.
+- `evaluate`: Method that evaluates a KYC input using the selected rule version
+
+**Abstractions:**
+- Discriminated union type for all KYC inputs (KycInput)
+- Input type that callers provide (without version discriminator) (KycInputWithoutVersion)
+- Custom hook (UseKycEngine)
+
+**Full Code:**
+```
+import { useMemo } from 'react';
+import { useFeatureFlags } from '../state/featureFlags';
+import { evaluateKycV1, type KycInput as KycInputV1, type KycInputBase, type KycResult } from './kycRules.v1';
+import { evaluateKycV2, type KycInputV2, type KycInputV2Base } from './kycRules.v2';
+
+// Discriminated union type for all KYC inputs
+export type KycInput = KycInputV1 | KycInputV2;
+
+// Input type that callers provide (without version discriminator)
+// The hook will automatically add the version based on feature flags
+export type KycInputWithoutVersion = KycInputBase & Partial<KycInputV2Base>;
+
+export interface UseKycEngine {
+  evaluate: (input: KycInputWithoutVersion) => KycResult;
+  version: 'v1' | 'v2';
+}
+
+/**
+ * Custom hook that selects the appropriate KYC rule version based on feature flag
+ * and exposes an evaluate method that uses the correct rules.
+ * 
+ * The hook automatically adds the version discriminator to the input based on
+ * the current feature flag, allowing TypeScript to properly narrow the types.
+ */
+export function useKycEngine(): UseKycEngine {
+  const { kycVersion } = useFeatureFlags();
+
+  const evaluate = useMemo(() => {
+    return (input: KycInputWithoutVersion): KycResult => {
+      // Add version discriminator based on feature flag
+      if (kycVersion === 'v2') {
+        const inputWithVersion: KycInputV2 = {
+          ...input,
+          version: 'v2',
+        };
+        return evaluateKycV2(inputWithVersion);
+      }
+      
+      const inputWithVersion: KycInputV1 = {
+        ...input,
+        version: 'v1',
+      };
+      return evaluateKycV1(inputWithVersion);
+    };
+  }, [kycVersion]);
+
+  return {
+    evaluate,
+    version: kycVersion,
+  };
+}
+
+
+```
+
+---
+
+
+## src\main.tsx
+
+**Summary:** Analysis failed
+
+**Full Code:**
+```
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+// import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import './index.css';
+import App from './App.tsx';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <App />
+      {/* <ReactQueryDevtools /> */}
+    </QueryClientProvider>
+  </StrictMode>
+);
+
+```
+
+---
+
+
+## src\state\featureFlags.ts
+
+**Summary:** This file defines a Zustand store for managing feature flags in an application.
+
+**Imports:**
+- import { create } from 'zustand'
+- import { persist } from 'zustand/middleware'
+
+**Exports:**
+- export const useFeatureFlags = create<FeatureFlags>()(...)
+
+**Functions:**
+- `create`: Creates a Zustand store
+- `persist`: P Persists the Zustand store to local storage
+- `set`: Sets the state of the feature flags store
+- `setKycVersion`: Sets the KYC version to v1 or v2
+- `setView`: Sets the view to view1 or view2
+- `setShowComponentOutlines`: Toggles the show component outlines state
+
+**Abstractions:**
+- interface FeatureFlags
+- class ZustandStore (create<FeatureFlags>())
+- function persist (store, options)
+
+**Full Code:**
+```
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+interface FeatureFlags {
+  kycVersion: 'v1' | 'v2'; // Internal - controls which KYC rules to use
+  view: 'view1' | 'view2'; // User-facing - controls which layout to show
+  showComponentOutlines: boolean;
+  setKycVersion: (version: 'v1' | 'v2') => void;
+  setView: (view: 'view1' | 'view2') => void;
+  setShowComponentOutlines: (show: boolean) => void;
+}
+
+export const useFeatureFlags = create<FeatureFlags>()(
+  persist(
+    (set) => ({
+      kycVersion: 'v1',
+      view: 'view2',
+      showComponentOutlines: false,
+      setKycVersion: (version) => set({ kycVersion: version }),
+      setView: (view) => set({ view }),
+      setShowComponentOutlines: (show) => set({ showComponentOutlines: show }),
+    }),
+    {
+      name: 'feature-flags-storage', // localStorage key
+    }
+  )
+);
+
+
+```
+
+---
+
+
+## src\views\dashboard\DashboardLayoutV1.tsx
+
+**Summary:** This file defines a React component for rendering a dashboard layout with three columns: customer search, transactions table, and KYC decision panel.
+
+**Imports:**
+- import { CustomerSearch } from './components/CustomerSearch'
+- import type { Customer } from '../../legacy/LegacyCustomerSearch'
+- import { FilterPanel, type FilterFormData } from './components/FilterPanel'
+- import { TransactionsTable } from './components/TransactionsTable'
+- import { CustomerDetailsPanel } from './components/CustomerDetailsPanel'
+- import type { KycResult } from '../../logic/kycRules.v1'
+- import type { TransactionFilters } from '../../api/transactionsApi'
+- import type { Transaction } from '../../api/transactionsApi'
+
+**Exports:**
+- export function DashboardLayoutV1({ selectedCustomer, kycResult, ... })
+
+**Functions:**
+- `DashboardLayoutV1`: A React component that renders a dashboard layout with three columns: customer search, transactions table, and KYC decision panel.
+- `FilterPanel`: A React component that renders a filter panel for the transactions table
+- `CustomerSearch`: A React component that renders a customer search input field
+- `TransactionsTable`: A React component that renders a table of transactions
+- `CustomerDetailsPanel`: A React component that renders a panel with customer details and KYC decision options
+
+**Abstractions:**
+- interface DashboardLayoutV1Props
+- type KycResult
+- type TransactionFilters
+- type FilterFormData
+
+**Full Code:**
+```
+import { CustomerSearch } from './components/CustomerSearch';
+import type { Customer } from '../../legacy/LegacyCustomerSearch';
+import { FilterPanel, type FilterFormData } from './components/FilterPanel';
+import { TransactionsTable } from './components/TransactionsTable';
+import { CustomerDetailsPanel } from './components/CustomerDetailsPanel';
+import type { KycResult } from '../../logic/kycRules.v1';
+import type { TransactionFilters } from '../../api/transactionsApi';
+import type { Transaction } from '../../api/transactionsApi';
+
+interface DashboardLayoutV1Props {
+  selectedCustomer: Customer | null;
+  kycResult: KycResult | null;
+  kycVersion: 'v1' | 'v2';
+  transactions: Transaction[];
+  isLoadingTransactions: boolean;
+  filters: TransactionFilters;
+  isProcessingKycAction: boolean;
+  onCustomerSelect: (customer: Customer) => void;
+  onFilterSubmit: (filters: FilterFormData) => void;
+  onApproveKyc: () => void;
+  onRequestKycDocuments: () => void;
+  onHoldKyc: () => void;
+}
+
+/**
+ * Dashboard Layout V1 - Classic 3-column horizontal layout
+ * Traditional sidebar + main content + details panel arrangement
+ */
+export function DashboardLayoutV1({
+  selectedCustomer,
+  kycResult,
+  kycVersion,
+  transactions,
+  isLoadingTransactions,
+  filters,
+  isProcessingKycAction,
+  onCustomerSelect,
+  onFilterSubmit,
+  onApproveKyc,
+  onRequestKycDocuments,
+  onHoldKyc,
+}: DashboardLayoutV1Props) {
+  return (
+    <div className="p-4">
+      {/* Filter Panel */}
+      <FilterPanel
+        onSubmit={onFilterSubmit}
+        defaultValues={{
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+          type: filters.type ? (filters.type as FilterFormData['type']) : 'all',
+          status: filters.status ? (filters.status as FilterFormData['status']) : 'all',
+        }}
+      />
+
+      {/* Main Content Grid - 3 columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Panel: Customer Search */}
+        <div className="lg:col-span-1">
+          <CustomerSearch onCustomerSelect={onCustomerSelect} />
+        </div>
+
+        {/* Middle Panel: Transactions */}
+        <div className="lg:col-span-1">
+          <TransactionsTable
+            transactions={transactions}
+            isLoading={isLoadingTransactions}
+          />
+        </div>
+
+        {/* Right Panel: KYC Decision */}
+        <div className="lg:col-span-1">
+          <CustomerDetailsPanel
+            customer={selectedCustomer}
+            kycResult={kycResult}
+            kycVersion={kycVersion}
+            isProcessing={isProcessingKycAction}
+            onApprove={onApproveKyc}
+            onRequestDocs={onRequestKycDocuments}
+            onHold={onHoldKyc}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+```
+
+---
+
+
+## src\views\dashboard\DashboardLayoutV2.tsx
+
+**Summary:** A React component for the dashboard layout, featuring customer search, transactions, and KYC decision
+
+**Imports:**
+- import { CustomerSearch } from './components/CustomerSearch'
+- import type { Customer } from '../../legacy/LegacyCustomerSearch'
+- import { FilterPanel, type FilterFormData } from './components/FilterPanel'
+- import { TransactionsTable } from './components/TransactionsTable'
+- import { CustomerDetailsPanel } from './components/CustomerDetailsPanel'
+- import type { KycResult } from '../../logic/kycRules.v1'
+- import type { TransactionFilters } from '../../api/transactionsApi'
+- import type { Transaction } from '../../api/transactionsApi'
+
+**Exports:**
+- export function DashboardLayoutV2({ selectedCustomer, kycResult, ... })
+
+**Functions:**
+- `DashboardLayoutV2`: A modern vertical stack layout for the dashboard, featuring customer search, transactions, and KYC decision
+- `onCustomerSelect`: Callback function to handle changes in selected customer
+- `onFilterSubmit`: Callback function to handle filter submission
+- `onApproveKyc`: Callback function to approve KYC action
+- `onRequestKycDocuments`: Callback function to request KYC documents
+- `onHoldKyc`: Callback function to hold KYC action
+
+**Abstractions:**
+- interface DashboardLayoutV2Props
+- type CustomerSearchProps
+- type FilterPanelProps
+- type TransactionsTableProps
+- type CustomerDetailsPanelProps
+- enum kycVersion
+- type KycResult
+- type TransactionFilters
+
+**Full Code:**
+```
+import { CustomerSearch } from './components/CustomerSearch';
+import type { Customer } from '../../legacy/LegacyCustomerSearch';
+import { FilterPanel, type FilterFormData } from './components/FilterPanel';
+import { TransactionsTable } from './components/TransactionsTable';
+import { CustomerDetailsPanel } from './components/CustomerDetailsPanel';
+import type { KycResult } from '../../logic/kycRules.v1';
+import type { TransactionFilters } from '../../api/transactionsApi';
+import type { Transaction } from '../../api/transactionsApi';
+
+interface DashboardLayoutV2Props {
+  selectedCustomer: Customer | null;
+  kycResult: KycResult | null;
+  kycVersion: 'v1' | 'v2';
+  transactions: Transaction[];
+  isLoadingTransactions: boolean;
+  filters: TransactionFilters;
+  isProcessingKycAction: boolean;
+  onCustomerSelect: (customer: Customer) => void;
+  onFilterSubmit: (filters: FilterFormData) => void;
+  onApproveKyc: () => void;
+  onRequestKycDocuments: () => void;
+  onHoldKyc: () => void;
+}
+
+/**
+ * Dashboard Layout V2 - Modern vertical stack layout
+ * Top customer search, middle transactions, bottom KYC decision
+ * More focused workflow-oriented design
+ */
+export function DashboardLayoutV2({
+  selectedCustomer,
+  kycResult,
+  kycVersion,
+  transactions,
+  isLoadingTransactions,
+  filters,
+  isProcessingKycAction,
+  onCustomerSelect,
+  onFilterSubmit,
+  onApproveKyc,
+  onRequestKycDocuments,
+  onHoldKyc,
+}: DashboardLayoutV2Props) {
+  return (
+    <div className="p-4">
+      {/* Top Section: Customer Search and Filters side-by-side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div>
+          <CustomerSearch onCustomerSelect={onCustomerSelect} />
+        </div>
+        <div>
+          <FilterPanel
+            onSubmit={onFilterSubmit}
+            defaultValues={{
+              dateFrom: filters.dateFrom,
+              dateTo: filters.dateTo,
+              type: filters.type ? (filters.type as FilterFormData['type']) : 'all',
+              status: filters.status ? (filters.status as FilterFormData['status']) : 'all',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Middle Section: Transactions - Full Width */}
+      <div className="mb-6">
+        <TransactionsTable
+          transactions={transactions}
+          isLoading={isLoadingTransactions}
+        />
+      </div>
+
+      {/* Bottom Section: KYC Decision - Full Width */}
+      <div>
+        <CustomerDetailsPanel
+          customer={selectedCustomer}
+          kycResult={kycResult}
+          kycVersion={kycVersion}
+          isProcessing={isProcessingKycAction}
+          onApprove={onApproveKyc}
+          onRequestDocs={onRequestKycDocuments}
+          onHold={onHoldKyc}
+        />
+      </div>
+    </div>
+  );
+}
+
+
+```
+
+---
+
+
+## src\views\dashboard\PaymentsOpsDashboard.tsx
+
+**Summary:** The PaymentsOpsDashboard component is a React functional component that displays a dashboard for managing payments operations. It uses various hooks and APIs to fetch data, handle user interactions, and update the state.
+
+**Imports:**
+- import { useState, useMemo } from 'react'
+- import { useQuery, useQueryClient } from '@tanstack/react-query'
+- import type { Customer } from '../../legacy/LegacyCustomerSearch'
+- import type { FilterFormData } from './components/FilterPanel'
+- import { useKycEngine } from '../../logic/useKycEngine'
+- import { useFeatureFlags } from '../../state/featureFlags'
+- import { fetchTransactions, approveKycDecision, requestKycDocuments, holdKycDecision, type TransactionFilters, type TransactionsResponse, type Transaction } from '../../api/transactionsApi'
+- import { DashboardLayoutV1 } from './DashboardLayoutV1'
+- import { DashboardLayoutV2 } from './DashboardLayoutV2'
+- import { FeatureFlagsPanel } from '../../components/FeatureFlagsPanel'
+
+**Exports:**
+- export function PaymentsOpsDashboard()
+
+**Functions:**
+- `handleCustomerSelect`: Handles customer selection by updating the selected customer state and refetching transactions
+- `handleFilterSubmit`: Handles filter submission by updating the filters state
+- `handleKycActionComplete`: Handles completion of KYC action by refetching transactions
+- `updateTransactionsOptimistically`: Updates transactions optimistically by updating the query data with a new transaction function
+- `handleApproveKyc`: Handles approval of KYC action by approving the decision, refetching transactions, and updating the state
+- `handleRequestKycDocuments`: Handles request for KYC documents by requesting the documents, handling completion, and updating the state
+- `handleHoldKyc`: Handles holding of KYC action by holding the decision, refetching transactions, and updating the state
+
+**Abstractions:**
+- useMemo
+- useState
+- useQueryClient
+- useFeatureFlags
+- useKycEngine
+
+**Full Code:**
+```
+import { useState, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Customer } from '../../legacy/LegacyCustomerSearch';
+import type { FilterFormData } from './components/FilterPanel';
+import { useKycEngine } from '../../logic/useKycEngine';
+import { useFeatureFlags } from '../../state/featureFlags';
+import {
+  fetchTransactions,
+  approveKycDecision,
+  requestKycDocuments,
+  holdKycDecision,
+  type TransactionFilters,
+  type TransactionsResponse,
+  type Transaction,
+} from '../../api/transactionsApi';
+import { DashboardLayoutV1 } from './DashboardLayoutV1';
+import { DashboardLayoutV2 } from './DashboardLayoutV2';
+import { FeatureFlagsPanel } from '../../components/FeatureFlagsPanel';
+
+/**
+ * Main Dashboard Page
+ * Composes UI components with business logic
+ * Demonstrates separation of concerns: UI components are separate from logic
+ */
+export function PaymentsOpsDashboard() {
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [filters, setFilters] = useState<TransactionFilters>({
+    dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    dateTo: new Date().toISOString().split('T')[0],
+  });
+  const [isProcessingKycAction, setIsProcessingKycAction] = useState(false);
+  const [showFeatureFlagsPanel, setShowFeatureFlagsPanel] = useState(false);
+  const [isHoveringCorner, setIsHoveringCorner] = useState(false);
+  
+  const { 
+    kycVersion,
+    view, 
+    showComponentOutlines,
+  } = useFeatureFlags();
+  const kycEngine = useKycEngine();
+  const queryClient = useQueryClient();
+
+  // Evaluate KYC decision when customer is selected
+  const kycResult = useMemo(() => {
+    if (!selectedCustomer) return null;
+
+    // Build KYC input from customer data
+    // In a real app, this might include transaction history, velocity, etc.
+    const kycInput = {
+      riskScore: selectedCustomer.riskScore,
+      country: selectedCustomer.country,
+      isPep: selectedCustomer.isPep,
+      sanctionsList: selectedCustomer.sanctionsList,
+      amount: 0, // Could be calculated from recent transactions
+      velocity: 0, // Could be calculated from recent transactions
+    };
+
+    return kycEngine.evaluate(kycInput);
+  }, [selectedCustomer, kycEngine]);
+
+  // Fetch transactions using TanStack Query
+  const {
+    data: transactionsData,
+    isLoading: isLoadingTransactions,
+    refetch: refetchTransactions,
+  } = useQuery({
+    queryKey: ['transactions', filters, selectedCustomer?.id],
+    queryFn: () =>
+      fetchTransactions({
+        ...filters,
+        customerId: selectedCustomer?.id,
+      }),
+  });
+
+  const handleCustomerSelect = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    // Transactions will automatically refetch due to query key including customerId
+  };
+
+  const handleFilterSubmit = (formFilters: FilterFormData) => {
+    setFilters({
+      dateFrom: formFilters.dateFrom,
+      dateTo: formFilters.dateTo,
+      type: formFilters.type === 'all' ? undefined : formFilters.type,
+      status: formFilters.status === 'all' ? undefined : formFilters.status,
+    });
+  };
+
+  const handleKycActionComplete = () => {
+    // Refetch transactions after KYC action to ensure consistency
+    refetchTransactions();
+  };
+
+  // Optimistically update transaction status for a customer
+  const updateTransactionsOptimistically = (
+    customerId: string,
+    updateFn: (transaction: Transaction) => Transaction
+  ) => {
+    const queryKey = ['transactions', filters, customerId];
+    queryClient.setQueryData<TransactionsResponse>(queryKey, (oldData) => {
+      if (!oldData) return oldData;
+      
+      return {
+        ...oldData,
+        transactions: oldData.transactions.map((transaction) =>
+          transaction.customerId === customerId
+            ? updateFn(transaction)
+            : transaction
+        ),
+      };
+    });
+  };
+
+  // Handle KYC actions - all business logic at page level
+  const handleApproveKyc = async () => {
+    if (!selectedCustomer) return;
+    setIsProcessingKycAction(true);
+    
+    // Store the previous data for rollback
+    const previousData = queryClient.getQueryData<TransactionsResponse>([
+      'transactions',
+      filters,
+      selectedCustomer.id,
+    ]);
+
+    try {
+      // Optimistically update: change pending transactions to completed
+      updateTransactionsOptimistically(selectedCustomer.id, (transaction) => {
+        if (transaction.status === 'pending') {
+          return { ...transaction, status: 'completed' as const };
+        }
+        return transaction;
+      });
+
+      await approveKycDecision(selectedCustomer.id);
+      // Refetch to ensure we have the latest server state
+      await refetchTransactions();
+    } catch (error) {
+      console.error('Failed to approve KYC decision:', error);
+      // Rollback on error
+      if (previousData) {
+        queryClient.setQueryData(
+          ['transactions', filters, selectedCustomer.id],
+          previousData
+        );
+      }
+    } finally {
+      setIsProcessingKycAction(false);
+    }
+  };
+
+  const handleRequestKycDocuments = async () => {
+    if (!selectedCustomer) return;
+    setIsProcessingKycAction(true);
+    try {
+      await requestKycDocuments(selectedCustomer.id);
+      handleKycActionComplete();
+    } catch (error) {
+      console.error('Failed to request documents:', error);
+    } finally {
+      setIsProcessingKycAction(false);
+    }
+  };
+
+  const handleHoldKyc = async () => {
+    if (!selectedCustomer) return;
+    setIsProcessingKycAction(true);
+    
+    // Store the previous data for rollback
+    const previousData = queryClient.getQueryData<TransactionsResponse>([
+      'transactions',
+      filters,
+      selectedCustomer.id,
+    ]);
+
+    try {
+      // Optimistically update: change pending transactions to failed (or keep as pending with visual indicator)
+      // For hold, we'll mark pending transactions as failed to indicate they're blocked
+      updateTransactionsOptimistically(selectedCustomer.id, (transaction) => {
+        if (transaction.status === 'pending') {
+          return { ...transaction, status: 'failed' as const };
+        }
+        return transaction;
+      });
+
+      await holdKycDecision(selectedCustomer.id);
+      // Refetch to ensure we have the latest server state
+      await refetchTransactions();
+    } catch (error) {
+      console.error('Failed to hold KYC decision:', error);
+      // Rollback on error
+      if (previousData) {
+        queryClient.setQueryData(
+          ['transactions', filters, selectedCustomer.id],
+          previousData
+        );
+      }
+    } finally {
+      setIsProcessingKycAction(false);
+    }
+  };
+
+  return (
+    <div 
+      className={`min-h-screen bg-gray-50 p-6 ${showComponentOutlines ? 'show-component-outlines' : ''}`}
+    >
+      <div className="max-w-7xl mx-auto">
+            {/* Header */}
+            <header className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Payments Operations Dashboard
+              </h1>
+            </header>
+
+        {/* Floating Feature Flags Button & Panel */}
+        <div
+          className="fixed bottom-0 right-0 z-50"
+          onMouseEnter={() => setIsHoveringCorner(true)}
+          onMouseLeave={() => setIsHoveringCorner(false)}
+        >
+          {/* Hover zone - invisible area to detect mouse in corner */}
+          <div className="absolute bottom-0 right-0 w-32 h-32" />
+          
+          <div className="flex flex-col items-end gap-4 pr-6 pb-6">
+            {/* Feature Flags Panel */}
+            <FeatureFlagsPanel 
+              isOpen={showFeatureFlagsPanel} 
+              onClose={() => setShowFeatureFlagsPanel(false)} 
+            />
+            
+            {/* Floating Button - Animates in when hovering corner or panel is open */}
+                <button
+                  onClick={() => setShowFeatureFlagsPanel(!showFeatureFlagsPanel)}
+                  aria-label="Open feature flags panel"
+                  aria-expanded={showFeatureFlagsPanel}
+                  className={`relative z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${
+                    showFeatureFlagsPanel || isHoveringCorner
+                      ? 'opacity-100 translate-y-0'
+                      : 'opacity-0 translate-y-4 pointer-events-none'
+                  } ${
+                    showFeatureFlagsPanel
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300'
+                  }`}
+                  title="Feature Flags"
+                >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          </button>
+          </div>
+        </div>
+
+        {/* Dynamic Layout Based on View */}
+        {view === 'view1' ? (
+          <DashboardLayoutV1
+            selectedCustomer={selectedCustomer}
+            kycResult={kycResult}
+            kycVersion={kycVersion}
+            transactions={transactionsData?.transactions || []}
+            isLoadingTransactions={isLoadingTransactions}
+            filters={filters}
+            isProcessingKycAction={isProcessingKycAction}
+            onCustomerSelect={handleCustomerSelect}
+            onFilterSubmit={handleFilterSubmit}
+            onApproveKyc={handleApproveKyc}
+            onRequestKycDocuments={handleRequestKycDocuments}
+            onHoldKyc={handleHoldKyc}
+          />
+        ) : (
+          <DashboardLayoutV2
+            selectedCustomer={selectedCustomer}
+            kycResult={kycResult}
+            kycVersion={kycVersion}
+            transactions={transactionsData?.transactions || []}
+            isLoadingTransactions={isLoadingTransactions}
+            filters={filters}
+            isProcessingKycAction={isProcessingKycAction}
+            onCustomerSelect={handleCustomerSelect}
+            onFilterSubmit={handleFilterSubmit}
+            onApproveKyc={handleApproveKyc}
+            onRequestKycDocuments={handleRequestKycDocuments}
+            onHoldKyc={handleHoldKyc}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+```
+
+---
+
+
+## src\views\dashboard\components\CustomerDetailsPanel.tsx
+
+**Summary:** A React component that displays customer details and KYC decision with action buttons, handling business logic at the page level.
+
+**Imports:**
+- import { KycDecisionBadge } from './KycDecisionBadge'
+- import type { KycResult } from '../../../logic/kycRules.v1'
+- import type { Customer } from '../../../legacy/LegacyCustomerSearch'
+
+**Exports:**
+- export function CustomerDetailsPanel
+
+**Functions:**
+- `CustomerDetailsPanel`: UI Component: Displays customer details and KYC decision with action buttons
+
+**Abstractions:**
+- interface CustomerDetailsPanelProps
+- type KycResult
+- type Customer
+- class KycDecisionBadge
+
+**Full Code:**
+```
+import { KycDecisionBadge } from './KycDecisionBadge';
+import type { KycResult } from '../../../logic/kycRules.v1';
+import type { Customer } from '../../../legacy/LegacyCustomerSearch';
+
+interface CustomerDetailsPanelProps {
+  customer: Customer | null;
+  kycResult: KycResult | null;
+  kycVersion: 'v1' | 'v2';
+  isProcessing?: boolean;
+  onApprove?: () => void;
+  onRequestDocs?: () => void;
+  onHold?: () => void;
+}
+
+/**
+ * UI Component: Displays customer details and KYC decision with action buttons
+ * Pure presentation component - all business logic handled at page level
+ */
+export function CustomerDetailsPanel({
+  customer,
+  kycResult,
+  kycVersion,
+  isProcessing = false,
+  onApprove,
+  onRequestDocs,
+  onHold,
+}: CustomerDetailsPanelProps) {
+  if (!customer) {
+    return (
+      <section className="p-6 bg-white rounded-lg border border-gray-200" aria-labelledby="kyc-decision-heading">
+        <h2 id="kyc-decision-heading" className="text-lg font-semibold mb-4 text-gray-700">KYC Decision</h2>
+        <p className="text-gray-600">Select a customer to view KYC decision</p>
+      </section>
+    );
+  }
+
+  // Visual styling based on KYC version
+  const versionStyles = kycVersion === 'v1' 
+    ? 'bg-blue-50 border-blue-300' 
+    : 'bg-purple-50 border-purple-300';
+
+  return (
+    <section 
+      className={`p-6 rounded-lg border-2 transition-colors ${versionStyles}`}
+      aria-labelledby="kyc-decision-heading"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h2 id="kyc-decision-heading" className="text-lg font-semibold">KYC Decision</h2>
+        <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+          kycVersion === 'v1' 
+            ? 'bg-blue-600 text-white' 
+            : 'bg-purple-600 text-white'
+        }`}>
+          {kycVersion.toUpperCase()}
+        </div>
+      </div>
+      
+      <div className="space-y-4">
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-medium text-gray-700">{customer.name}</span>
+            {kycResult && <KycDecisionBadge decision={kycResult.decision} />}
+          </div>
+          <div className="text-sm text-gray-600 space-y-1">
+            <div>ID {customer.id}</div>
+            <div>Risk Score {customer.riskScore}</div>
+            <div>Country {customer.country}</div>
+          </div>
+        </div>
+
+        {kycResult && kycResult.reasons.length > 0 && (
+          <div>
+            <h3 className="font-semibold text-sm text-gray-700 mb-2">Reasons</h3>
+            <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+              {kycResult.reasons.map((reason, index) => (
+                <li key={index}>{reason}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="pt-4 border-t border-gray-200">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={onApprove}
+              disabled={isProcessing}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              Approve
+            </button>
+            <button
+              onClick={onRequestDocs}
+              disabled={isProcessing}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              Request Docs
+            </button>
+            <button
+              onClick={onHold}
+              disabled={isProcessing}
+              className="col-span-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              Hold
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+```
+
+---
+
+
+## src\views\dashboard\components\CustomerSearch.tsx
+
+**Summary:** Reusable Customer Search Component with Minimal Business Logic
+
+**Imports:**
+- import { useEffect, useRef } from 'react'
+- import { LegacyCustomerSearch, type Customer } from '../../../legacy/LegacyCustomerSearch'
+
+**Exports:**
+- export function CustomerSearch({ onCustomerSelect }: CustomerSearchProps)
+
+**Functions:**
+- `useEffect`: Runs a side effect after rendering the component
+- `useRef`: Creates a reference to an HTML element
+- `handleCustomerSelect`: Listens for the legacy component's custom event and converts it to a modern callback
+
+**Abstractions:**
+- interface CustomerSearchProps
+- class LegacyCustomerSearch
+- type Customer
+
+**Full Code:**
+```
+import { useEffect, useRef } from 'react';
+import { LegacyCustomerSearch, type Customer } from '../../../legacy/LegacyCustomerSearch';
+
+interface CustomerSearchProps {
+  onCustomerSelect: (customer: Customer) => void;
+}
+
+/**
+ * Customer Search - Reusable Component with Minimal Business Logic
+ * 
+ * This component wraps the embedded legacy customer search and converts
+ * its event-based communication to modern React callback patterns.
+ * 
+ * In a real implementation:
+ * - Would integrate with micro-frontend frameworks like single-spa to mount/unmount
+ *   the legacy application within the container
+ * - Would handle lifecycle methods (mount, unmount, update) from the framework
+ * - Would coordinate between the legacy app's lifecycle and React's lifecycle
+ * - The event bridging logic here demonstrates how you'd connect the systems
+ * 
+ * Located in /components (despite having business logic) because:
+ * - It's a reusable utility that other parts of the app can use
+ * - The business logic is minimal (event bridging) and self-contained
+ * - It provides a clean API that hides the legacy implementation details
+ * - Organizational clarity: developers know "this is a component I can use"
+ * 
+ * This demonstrates:
+ * 1. Isolating legacy components that use event-based communication
+ * 2. Bridging between legacy event system and modern React patterns
+ * 3. Practical organization: sometimes reusable utilities with minimal logic
+ *    belong in components for discoverability and ease of use
+ */
+export function CustomerSearch({ onCustomerSelect }: CustomerSearchProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Listen for the legacy component's custom event
+    const handleCustomerSelect = (event: Event) => {
+      const customEvent = event as CustomEvent<Customer>;
+      if (customEvent.detail) {
+        // Convert event to modern callback
+        onCustomerSelect(customEvent.detail);
+      }
+    };
+
+    container.addEventListener('customer:select', handleCustomerSelect);
+
+    // Cleanup
+    return () => {
+      container.removeEventListener('customer:select', handleCustomerSelect);
+    };
+  }, [onCustomerSelect]);
+
+  return (
+    <div ref={containerRef} data-business-logic="CustomerSearch">
+      <LegacyCustomerSearch />
+    </div>
+  );
+}
+
+
+```
+
+---
+
+
+## src\views\dashboard\components\FilterPanel.tsx
+
+**Summary:** A React component for a filter panel with form for date range, type, and status
+
+**Imports:**
+- import { useForm } from 'react-hook-form'
+- import { zodResolver } from '@hookform/resolvers/zod'
+- import { z } from 'zod'
+- import React from 'react'
+
+**Exports:**
+- export type FilterFormData = z.infer<typeof filterSchema>;
+- export interface FilterPanelProps { ... };
+- export function FilterPanel({ onSubmit, defaultValues }: FilterPanelProps) { ... }
+
+**Functions:**
+- `useForm`: sets up React Hook Form with Zod validation
+- `zodResolver`: resolves Zod schema to a resolver function for React Hook Form
+- `register`: registers a field in the form with React Hook Form
+- `handleSubmit`: handles form submission with React Hook Form
+- `reset`: resets the form state with React Hook Form
+- `getDefaultDateFrom`: returns the default date from 7 days ago
+- `getDefaultDateTo`: returns the current date
+- `handleFormSubmit`: converts 'all' to undefined for API and calls onSubmit with filtered data
+- `handleReset`: resets the form state and calls onSubmit with default values
+
+**Abstractions:**
+- interface FilterPanelProps
+- type FilterFormData
+- function useForm<FilterFormData>
+- function zodResolver<FilterSchema>
+
+**Full Code:**
+```
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const filterSchema = z.object({
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  type: z.enum(['payment', 'refund', 'chargeback', 'all']).optional(),
+  status: z.enum(['completed', 'pending', 'failed', 'all']).optional(),
+});
+
+export type FilterFormData = z.infer<typeof filterSchema>;
+
+interface FilterPanelProps {
+  onSubmit: (filters: FilterFormData) => void;
+  defaultValues?: Partial<FilterFormData>;
+}
+
+/**
+ * UI Component: Filter panel with form for date range, type, and status
+ * Uses React Hook Form with Zod validation
+ */
+export function FilterPanel({ onSubmit, defaultValues }: FilterPanelProps) {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { isDirty },
+  } = useForm<FilterFormData>({
+    resolver: zodResolver(filterSchema),
+    defaultValues: {
+      type: 'all',
+      status: 'all',
+      ...defaultValues,
+    },
+  });
+
+  const handleFormSubmit = (data: FilterFormData) => {
+    // Convert 'all' to undefined for API
+    const filters = {
+      ...data,
+      type: data.type === 'all' ? undefined : data.type,
+      status: data.status === 'all' ? undefined : data.status,
+    };
+    onSubmit(filters);
+  };
+
+  const handleReset = () => {
+    reset({
+      type: 'all',
+      status: 'all',
+      dateFrom: undefined,
+      dateTo: undefined,
+    });
+    onSubmit({
+      type: undefined,
+      status: undefined,
+      dateFrom: undefined,
+      dateTo: undefined,
+    });
+  };
+
+  // Set default date range to last 7 days
+  const getDefaultDateFrom = () => {
+    const date = new Date();
+    date.setDate(date.getDate() - 7);
+    return date.toISOString().split('T')[0];
+  };
+
+  const getDefaultDateTo = () => {
+    return new Date().toISOString().split('T')[0];
+  };
+
+  return (
+    <section className="p-4 bg-white rounded-lg border border-gray-200 mb-6" aria-labelledby="filters-heading">
+      <h2 id="filters-heading" className="text-lg font-semibold mb-4">Filters</h2>
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="filter-date-from" className="block text-sm font-medium text-gray-700 mb-1">
+              Date From
+            </label>
+            <input
+              id="filter-date-from"
+              type="date"
+              {...register('dateFrom')}
+              defaultValue={defaultValues?.dateFrom || getDefaultDateFrom()}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Filter transactions from date"
+            />
+          </div>
+          <div>
+            <label htmlFor="filter-date-to" className="block text-sm font-medium text-gray-700 mb-1">
+              Date To
+            </label>
+            <input
+              id="filter-date-to"
+              type="date"
+              {...register('dateTo')}
+              defaultValue={defaultValues?.dateTo || getDefaultDateTo()}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Filter transactions to date"
+            />
+          </div>
+          <div>
+            <label htmlFor="filter-type" className="block text-sm font-medium text-gray-700 mb-1">
+              Type
+            </label>
+            <select
+              id="filter-type"
+              {...register('type')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Filter by transaction type"
+            >
+              <option value="all">All Types</option>
+              <option value="payment">Payment</option>
+              <option value="refund">Refund</option>
+              <option value="chargeback">Chargeback</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="filter-status" className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              id="filter-status"
+              {...register('status')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Filter by transaction status"
+            >
+              <option value="all">All Statuses</option>
+              <option value="completed">Completed</option>
+              <option value="pending">Pending</option>
+              <option value="failed">Failed</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Apply Filters
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={!isDirty}
+            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Reset
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+
+```
+
+---
+
+
+## src\views\dashboard\components\KycDecisionBadge.tsx
+
+**Summary:** Analysis failed
+
+**Full Code:**
+```
+import type { KycDecision } from '../../../logic/kycRules.v1';
+
+interface KycDecisionBadgeProps {
+  decision: KycDecision;
+}
+
+/**
+ * UI Component: Displays KYC decision with appropriate styling
+ * This is a pure presentation component - no business logic
+ */
+export function KycDecisionBadge({ decision }: KycDecisionBadgeProps) {
+  const getBadgeStyles = (decision: KycDecision) => {
+    switch (decision) {
+      case 'approve':
+        return 'bg-green-100 text-green-800 border-green-300';
+      case 'manual_review':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'deny':
+        return 'bg-red-100 text-red-800 border-red-300';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
+  const getLabel = (decision: KycDecision) => {
+    switch (decision) {
+      case 'approve':
+        return 'Approved';
+      case 'manual_review':
+        return 'Manual Review';
+      case 'deny':
+        return 'Denied';
+      default:
+        return 'Unknown';
+    }
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${getBadgeStyles(
+        decision
+      )}`}
+    >
+      {getLabel(decision)}
+    </span>
+  );
+}
+
+
+```
+
+---
+
+
+## src\views\dashboard\components\TransactionsTable.tsx
+
+**Summary:** A React component that displays transactions in a table format, handling loading and no data states.
+
+**Imports:**
+- import type { Transaction } from '../../../api/transactionsApi'
+- import React from 'react';
+- import { styled, css } from 'styled-components';
+- import { Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react'
+
+**Exports:**
+- export function TransactionsTable({ transactions, isLoading }: TransactionsTableProps)
+
+**Functions:**
+- `formatCurrency`: Formats a currency amount using the Intl.NumberFormat API
+- `formatDate`: Formats a date string into a locale-specific format
+- `getStatusBadgeColor`: Returns a CSS class for a status badge based on the transaction status
+- `getTypeColor`: Returns a CSS class for a type label based on the transaction type
+
+**Abstractions:**
+- TransactionsTableProps
+- Transaction
+
+**Full Code:**
+```
+import type { Transaction } from '../../../api/transactionsApi';
+
+interface TransactionsTableProps {
+  transactions: Transaction[];
+  isLoading?: boolean;
+}
+
+const formatCurrency = (amount: number, currency: string) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+  }).format(amount);
+};
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+const getStatusBadgeColor = (status: Transaction['status']) => {
+  switch (status) {
+    case 'completed':
+      return 'bg-green-100 text-green-800';
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'failed':
+      return 'bg-red-100 text-red-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const getTypeColor = (type: Transaction['type']) => {
+  switch (type) {
+    case 'payment':
+      return 'text-blue-700';
+    case 'refund':
+      return 'text-orange-700';
+    case 'chargeback':
+      return 'text-red-700';
+    default:
+      return 'text-gray-700';
+  }
+};
+
+/**
+ * UI Component: Displays transactions in a table format
+ * Pure presentation component - receives data as props
+ */
+export function TransactionsTable({ transactions, isLoading }: TransactionsTableProps) {
+
+
+  if (isLoading) {
+    return (
+      <div className="p-6 bg-white rounded-lg border border-gray-200">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading transactions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (transactions.length === 0) {
+    return (
+      <section className="p-6 bg-white rounded-lg border border-gray-200" aria-labelledby="transactions-heading">
+        <h2 id="transactions-heading" className="text-lg font-semibold mb-4 text-gray-700">Transactions</h2>
+        <p className="text-gray-600 text-center py-8">No transactions found</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="p-6 bg-white rounded-lg border border-gray-200" aria-labelledby="transactions-heading">
+      <h2 id="transactions-heading" className="text-lg font-semibold mb-4">Transactions</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left" aria-label="Transaction details">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="pb-2 text-sm font-semibold text-gray-700">ID</th>
+              <th className="pb-2 text-sm font-semibold text-gray-700">Customer</th>
+              <th className="pb-2 text-sm font-semibold text-gray-700">Amount</th>
+              <th className="pb-2 text-sm font-semibold text-gray-700">Type</th>
+              <th className="pb-2 text-sm font-semibold text-gray-700">Status</th>
+              <th className="pb-2 text-sm font-semibold text-gray-700">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {transactions.map((transaction) => (
+              <tr key={transaction.id} className="border-b border-gray-100">
+                <td className="py-3 text-sm text-gray-600">{transaction.id}</td>
+                <td className="py-3 text-sm text-gray-600">{transaction.customerName}</td>
+                <td className="py-3 text-sm font-medium text-gray-900">
+                  {formatCurrency(transaction.amount, transaction.currency)}
+                </td>
+                <td className={`py-3 text-sm font-medium ${getTypeColor(transaction.type)}`}>
+                  {transaction.type}
+                </td>
+                <td className="py-3">
+                  <span
+                    className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getStatusBadgeColor(
+                      transaction.status
+                    )}`}
+                  >
+                    {transaction.status}
+                  </span>
+                </td>
+                <td className="py-3 text-sm text-gray-600">{formatDate(transaction.date)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+
+```
+
+---
+
+
+## tsconfig.app.json
+
+**Summary:** This file configures the TypeScript compiler for a Vite application, specifying the target JavaScript version, module system, and other settings.
+
+**Imports:**
+- vite/client
+
+**Functions:**
+- `tsBuildInfoFile`: specifies the location of the build info file
+- `target`: specifies the target JavaScript version (e.g., ES2022)
+- `useDefineForClassFields`: enables or disables the use of define for class fields
+- `lib`: specifies the libraries to include in the build
+- `module`: specifies the module system to use (e.g., ESNext)
+- `types`: specifies the types to include in the build
+- `skipLibCheck`: skips the library check
+- `moduleResolution`: specifies the module resolution strategy (e.g., bundler)
+- `allowImportingTsExtensions`: allows importing TypeScript extensions
+- `verbatimModuleSyntax`: enables or disables verbatim module syntax
+- `moduleDetection`: specifies the module detection strategy (e.g., force)
+- `noEmit`: disables emitting the compiled code
+- `jsx`: specifies the JSX mode (e.g., react-jsx)
+- `strict`: enables or disables strict type checking
+- `noUnusedLocals`: disables unused locals
+- `noUnusedParameters`: disables unused parameters
+- `erasableSyntaxOnly`: enables erasable syntax only
+- `noFallthroughCasesInSwitch`: disables fallthrough cases in switch statements
+- `noUncheckedSideEffectImports`: disables unchecked side effect imports
+
+**Abstractions:**
+- ES2022
+- DOM
+- DOM.Iterable
+
+**Full Code:**
+```
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src"]
+}
+
+```
+
+---
+
+
+## tsconfig.json
+
+**Summary:** This file configures the TypeScript compiler settings for a project.
+
+**Abstractions:**
+- references
+
+**Full Code:**
+```
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+
+```
+
+---
+
+
+## tsconfig.node.json
+
+**Summary:** This file configures the TypeScript compiler for a Node.js environment, specifying target version, library versions, module system, and other settings.
+
+**Imports:**
+- node_modules/.tmp/tsconfig.node.tsbuildinfo
+
+**Functions:**
+- `tsBuildInfoFile`: specifies the location of the build info file
+- `target`: specifies the target JavaScript version (e.g., ES2023)
+- `lib`: specifies the library versions to include (e.g., ES2023)
+- `module`: specifies the module system to use (e.g., ESNext)
+- `types`: specifies the types to include (e.g., node)
+- `skipLibCheck`: skips checking for library compatibility
+- `moduleResolution`: specifies the module resolution strategy (bundler)
+- `allowImportingTsExtensions`: allows importing TypeScript files with .ts extension
+- `verbatimModuleSyntax`: enables verbatim module syntax
+- `moduleDetection`: specifies the module detection strategy (force)
+- `noEmit`: disables emitting the compiled code
+- `strict`: enables strict mode for TypeScript
+- `noUnusedLocals`: disables unused locals warnings
+- `noUnusedParameters`: disables unused parameters warnings
+- `erasableSyntaxOnly`: enables erasable syntax only
+- `noFallthroughCasesInSwitch`: disables fallthrough cases in switch statements
+- `noUncheckedSideEffectImports`: disables unchecked side effect imports
+
+**Abstractions:**
+- ES2023
+- node
+- TSBuildInfoFile
+
+**Full Code:**
+```
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["vite.config.ts"]
+}
+
+```
+
+---
+
+
+## vite-plugin-component-attributes.ts
+
+**Summary:** Analysis failed
+
+**Full Code:**
+```
+import type { Plugin } from 'vite';
+import { parse } from '@babel/parser';
+import * as t from '@babel/types';
+import type { NodePath } from '@babel/traverse';
+
+// Import traverse - handle the export structure
+import * as traverseModule from '@babel/traverse';
+const traverseFn = (traverseModule as any).default || traverseModule;
+
+// Import generate - handle the export structure
+import * as generateModule from '@babel/generator';
+const generateFn = (generateModule as any).default || generateModule;
+
+interface ComponentInfo {
+  name: string;
+  hooks: Set<string>;
+  componentPath: NodePath<t.FunctionDeclaration | t.VariableDeclarator>;
+}
+
+/**
+ * Vite plugin that automatically adds data-component and data-business-logic attributes
+ * to React components during build time.
+ * 
+ * Rules:
+ * - Adds data-component={componentName} to ALL components (first JSX element returned)
+ * - Adds data-business-logic={filename} if component uses hooks other than useRef, useEffect, useMemo
+ */
+export function componentAttributesPlugin(): Plugin {
+  return {
+    name: 'component-attributes',
+    enforce: 'pre',
+    transform(code, id) {
+      // Only process React/TypeScript component files
+      if (!id.match(/\.(tsx|jsx)$/) || id.includes('node_modules')) {
+        return null;
+      }
+
+      try {
+        // Parse the code
+        const ast = parse(code, {
+          sourceType: 'module',
+          plugins: ['typescript', 'jsx', 'decorators-legacy'],
+        });
+
+        // Extract filename without extension for data-business-logic value
+        const fileName = id.split('/').pop()?.replace(/\.(tsx|jsx)$/, '') || 'unknown';
+
+        const components = new Map<string, ComponentInfo>();
+        let hasModifications = false;
+
+        // First pass: Find all components and their hook usage
+        // Use the traverse function - handle both named and default exports
+        const traverse = typeof traverseFn === 'function' ? traverseFn : (traverseFn as any).default;
+        if (!traverse || typeof traverse !== 'function') {
+          console.error(`[component-attributes] traverse is not a function in ${fileName}, type: ${typeof traverseFn}`);
+          return null;
+        }
+        traverse(ast, {
+          // Handle function declarations: function Component() { ... }
+          FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
+            const node = path.node;
+            if (node.id && /^[A-Z]/.test(node.id.name)) {
+              const hooks = new Set<string>();
+
+              // Find all hook calls in the component
+              path.traverse({
+                CallExpression(hookPath: NodePath<t.CallExpression>) {
+                  const callee = hookPath.node.callee;
+                  if (t.isIdentifier(callee) && callee.name.startsWith('use')) {
+                    hooks.add(callee.name);
+                  }
+                },
+              });
+
+              components.set(node.id.name, {
+                name: node.id.name,
+                hooks,
+                componentPath: path as NodePath<t.FunctionDeclaration | t.VariableDeclarator>,
+              });
+            }
+          },
+          // Handle variable declarations: const Component = () => { ... }
+          VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
+            const node = path.node;
+            if (
+              t.isIdentifier(node.id) &&
+              /^[A-Z]/.test(node.id.name) &&
+              (t.isArrowFunctionExpression(node.init) ||
+                t.isFunctionExpression(node.init))
+            ) {
+              const hooks = new Set<string>();
+
+              const func = node.init as t.ArrowFunctionExpression | t.FunctionExpression;
+
+              // Traverse the function body to find hooks
+              if (t.isBlockStatement(func.body)) {
+                path.traverse({
+                  CallExpression(hookPath: NodePath<t.CallExpression>) {
+                    // Skip if this call is outside our function scope
+                    if (!hookPath.findParent((p: NodePath) => p.node === func.body)) return;
+
+                    const callee = hookPath.node.callee;
+                    if (t.isIdentifier(callee) && callee.name.startsWith('use')) {
+                      hooks.add(callee.name);
+                    }
+                  },
+                });
+              } else if (t.isJSXElement(func.body)) {
+                // Arrow function with implicit return - no hooks possible here
+              }
+
+              components.set(node.id.name, {
+                name: node.id.name,
+                hooks,
+                componentPath: path,
+              });
+            }
+          },
+        });
+
+
+        // Second pass: For each component, find its return statements and add attributes
+        for (const component of components.values()) {
+          const path = component.componentPath;
+          const jsxReturnStatements: NodePath<t.ReturnStatement>[] = [];
+
+          // Find ALL return statements that return JSX (skip null returns)
+          if (t.isFunctionDeclaration(path.node)) {
+            // Find return statements only in the function body, not nested functions
+            const body = path.node.body;
+            if (t.isBlockStatement(body)) {
+              // Collect all return statements
+              const returnStatements: NodePath<t.ReturnStatement>[] = [];
+              path.get('body').traverse({
+                ReturnStatement(returnPath: NodePath<t.ReturnStatement>) {
+                  // Make sure we're not inside a nested function
+                  const parent = returnPath.getFunctionParent();
+                  if (!parent || parent.node === path.node) {
+                    returnStatements.push(returnPath);
+                  }
+                },
+              });
+              // Collect ALL return statements that return JSX (skip null returns)
+              for (const returnStmt of returnStatements) {
+                const returnValue = returnStmt.node.argument;
+                // Skip null returns (early returns)
+                if (returnValue && t.isNullLiteral(returnValue)) {
+                  continue;
+                }
+                if (returnValue && 
+                    (t.isJSXElement(returnValue) || 
+                     t.isJSXFragment(returnValue) || 
+                     t.isConditionalExpression(returnValue))) {
+                  jsxReturnStatements.push(returnStmt);
+                }
+              }
+            }
+          } else if (t.isVariableDeclarator(path.node)) {
+            const init = path.node.init;
+            if (init && (t.isArrowFunctionExpression(init) || t.isFunctionExpression(init))) {
+              const func = init;
+              
+              if (t.isArrowFunctionExpression(func) && t.isJSXElement(func.body)) {
+                // Implicit return - will be handled below
+              } else if (t.isBlockStatement(func.body)) {
+                // Collect all return statements
+                const returnStatements: NodePath<t.ReturnStatement>[] = [];
+                path.get('init').get('body').traverse({
+                  ReturnStatement(returnPath: NodePath<t.ReturnStatement>) {
+                    // Make sure we're not inside a nested function
+                    const parent = returnPath.getFunctionParent();
+                    if (!parent || parent.node === func) {
+                      returnStatements.push(returnPath);
+                    }
+                  },
+                });
+                // Collect ALL return statements that return JSX (skip null returns)
+                for (const returnStmt of returnStatements) {
+                  const returnValue = returnStmt.node.argument;
+                  // Skip null returns (early returns)
+                  if (returnValue && t.isNullLiteral(returnValue)) {
+                    continue;
+                  }
+                  if (returnValue && 
+                      (t.isJSXElement(returnValue) || 
+                       t.isJSXFragment(returnValue) || 
+                       t.isConditionalExpression(returnValue))) {
+                    jsxReturnStatements.push(returnStmt);
+                  }
+                }
+              }
+            }
+          }
+
+          // Helper function to add attributes to a JSX element
+          function addAttributesToJSXElement(
+            jsxElement: t.JSXElement,
+            comp: ComponentInfo,
+            fName: string
+          ) {
+            const existingAttributes = jsxElement.openingElement.attributes;
+
+            // Check if attributes already exist
+            const hasDataComponent = existingAttributes.some(
+              (attr) =>
+                t.isJSXAttribute(attr) &&
+                t.isJSXIdentifier(attr.name) &&
+                attr.name.name === 'data-component'
+            );
+
+            const hasDataBusinessLogic = existingAttributes.some(
+              (attr) =>
+                t.isJSXAttribute(attr) &&
+                t.isJSXIdentifier(attr.name) &&
+                attr.name.name === 'data-business-logic'
+            );
+
+            // ALWAYS add data-component to ALL components
+            if (!hasDataComponent) {
+              const componentAttr = t.jsxAttribute(
+                t.jsxIdentifier('data-component'),
+                t.stringLiteral(comp.name)
+              );
+              jsxElement.openingElement.attributes.push(componentAttr);
+              hasModifications = true;
+            }
+
+            // Only add data-business-logic if component uses hooks OTHER than useRef, useEffect, useMemo
+            const allowedHooks = new Set(['useRef', 'useEffect', 'useMemo']);
+            const businessLogicHooks = Array.from(comp.hooks).filter(
+              (h) => !allowedHooks.has(h)
+            );
+            
+            // Only add attribute if there are hooks that indicate business logic
+            // Use the filename as the value
+            if (!hasDataBusinessLogic && businessLogicHooks.length > 0) {
+              const businessLogicAttr = t.jsxAttribute(
+                t.jsxIdentifier('data-business-logic'),
+                t.stringLiteral(fName)
+              );
+              jsxElement.openingElement.attributes.push(businessLogicAttr);
+              hasModifications = true;
+            }
+          }
+
+          // Handle implicit return for arrow functions
+          if (t.isVariableDeclarator(path.node)) {
+            const init = path.node.init;
+            if (init && t.isArrowFunctionExpression(init) && t.isJSXElement(init.body)) {
+              // For implicit returns, add to the JSX element directly
+              const jsxElement = init.body;
+              addAttributesToJSXElement(jsxElement, component, fileName);
+            }
+          }
+
+          // Process all JSX return statements - add attributes to each one
+          for (const returnStmtPath of jsxReturnStatements) {
+            const returnNode = returnStmtPath.node;
+            const returnValue = returnNode.argument;
+            if (!returnValue) continue;
+
+            let jsxElement: t.JSXElement | null = null;
+
+            if (t.isJSXElement(returnValue)) {
+              jsxElement = returnValue;
+            } else if (t.isJSXFragment(returnValue)) {
+              const firstChild = returnValue.children.find((child) =>
+                t.isJSXElement(child)
+              ) as t.JSXElement | undefined;
+              if (firstChild) jsxElement = firstChild;
+            } else if (t.isConditionalExpression(returnValue)) {
+              if (t.isJSXElement(returnValue.consequent)) {
+                jsxElement = returnValue.consequent;
+              } else if (t.isJSXElement(returnValue.alternate)) {
+                jsxElement = returnValue.alternate;
+              }
+            }
+
+            if (jsxElement) {
+              addAttributesToJSXElement(jsxElement, component, fileName);
+            }
+          }
+        }
+
+        if (hasModifications) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const generate = typeof generateFn === 'function' ? generateFn : (generateFn as any).default;
+          const output = generate(ast, { retainLines: false }, code);
+          return {
+            code: output.code,
+            map: output.map,
+          };
+        }
+
+        return null;
+      } catch (error) {
+        // If parsing fails, return original code
+        console.warn(`[component-attributes] Failed to parse ${id}:`, error);
+        return null;
+      }
+    },
+  };
+}
+
+```
+
+---
+
+
+## vite.config.ts
+
+**Summary:** Defines the configuration for a Vite project, including plugins and settings
+
+**Imports:**
+- import { defineConfig } from 'vite'
+- import react from '@vitejs/plugin-react'
+- import tailwindcss from '@tailwindcss/vite'
+- import { componentAttributesPlugin } from './vite-plugin-component-attributes'
+
+**Exports:**
+- export default defineConfig
+
+**Functions:**
+- `defineConfig`: Defines the Vite configuration
+- `tailwindcss`: Configures Tailwind CSS for Vite
+- `react`: Configures React for Vite
+
+**Abstractions:**
+- ViteConfig
+- TailwindCSSPlugin
+- ReactPlugin
+
+**Full Code:**
+```
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import { componentAttributesPlugin } from './vite-plugin-component-attributes'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [
+    tailwindcss(),
+    react(),
+    componentAttributesPlugin(),
+  ],
+})
+
+```
+
+---
+

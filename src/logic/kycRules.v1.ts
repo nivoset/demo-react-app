@@ -1,9 +1,15 @@
 export type KycDecision = 'approve' | 'manual_review' | 'deny';
 
-export interface KycInput {
+// Base input fields for v1 (without discriminator)
+export interface KycInputBase {
   riskScore: number;
   country: string;
   amount?: number;
+}
+
+// Discriminated union type for v1
+export interface KycInput extends KycInputBase {
+  version: 'v1';
 }
 
 export interface KycResult {

@@ -20,99 +20,107 @@ describe('useKycEngine', () => {
 
   describe('version selection', () => {
     it.each([
-      { version: 'v1' as const, expectedVersion: 'v1' },
-      { version: 'v2' as const, expectedVersion: 'v2' },
-    ])('should return version $expectedVersion when kycVersion is $version', ({ version, expectedVersion }) => {
-      useFeatureFlags.setState({ kycVersion: version });
-      const { result } = renderHook(() => useKycEngine());
-      expect(result.current.version).toBe(expectedVersion);
-    });
+      { version: 'v1', expectedVersion: 'v1' },
+      { version: 'v2', expectedVersion: 'v2' },
+    ] satisfies Array<{ version: 'v1' | 'v2'; expectedVersion: 'v1' | 'v2' }>)(
+      'should return version $expectedVersion when kycVersion is $version',
+      ({ version, expectedVersion }) => {
+        useFeatureFlags.setState({ kycVersion: version });
+        const { result } = renderHook(() => useKycEngine());
+        expect(result.current.version).toBe(expectedVersion);
+      }
+    );
   });
 
   describe('KYC evaluation - version with input should produce expected output', () => {
     it.each([
       // v1 tests
       {
-        version: 'v1' as const,
+        version: 'v1',
         input: { riskScore: 30, country: 'US' },
-        expectedDecision: 'approve' as const,
+        expectedDecision: 'approve',
         expectedReasonContains: 'Low risk score',
       },
       {
-        version: 'v1' as const,
+        version: 'v1',
         input: { riskScore: 50, country: 'US' },
-        expectedDecision: 'manual_review' as const,
+        expectedDecision: 'manual_review',
         expectedReasonContains: 'Risk score 50-79',
       },
       {
-        version: 'v1' as const,
+        version: 'v1',
         input: { riskScore: 85, country: 'US' },
-        expectedDecision: 'deny' as const,
+        expectedDecision: 'deny',
         expectedReasonContains: 'Risk score 80+',
       },
       {
-        version: 'v1' as const,
+        version: 'v1',
         input: { riskScore: 30, country: 'XX' },
-        expectedDecision: 'deny' as const,
+        expectedDecision: 'deny',
         expectedReasonContains: 'Restricted country: XX',
       },
       {
-        version: 'v1' as const,
+        version: 'v1',
         input: { riskScore: 30, country: 'US', isPep: true, velocity: 10 },
-        expectedDecision: 'approve' as const,
+        expectedDecision: 'approve',
         expectedReasonContains: 'Low risk score',
       },
       
       // v2 tests
       {
-        version: 'v2' as const,
+        version: 'v2',
         input: { riskScore: 30, country: 'US' },
-        expectedDecision: 'approve' as const,
+        expectedDecision: 'approve',
         expectedReasonContains: 'Low risk profile',
       },
       {
-        version: 'v2' as const,
+        version: 'v2',
         input: { riskScore: 30, country: 'US', isPep: true },
-        expectedDecision: 'manual_review' as const,
+        expectedDecision: 'manual_review',
         expectedReasonContains: 'PEP (Politically Exposed Person)',
       },
       {
-        version: 'v2' as const,
+        version: 'v2',
         input: { riskScore: 50, country: 'US' },
-        expectedDecision: 'manual_review' as const,
+        expectedDecision: 'manual_review',
         expectedReasonContains: 'Risk score 50-74',
       },
       {
-        version: 'v2' as const,
+        version: 'v2',
         input: { riskScore: 80, country: 'US' },
-        expectedDecision: 'deny' as const,
+        expectedDecision: 'deny',
         expectedReasonContains: 'Risk score 75+',
       },
       {
-        version: 'v2' as const,
+        version: 'v2',
         input: { riskScore: 10, country: 'US', sanctionsList: true },
-        expectedDecision: 'deny' as const,
+        expectedDecision: 'deny',
         expectedReasonContains: 'On sanctions list',
       },
       {
-        version: 'v2' as const,
+        version: 'v2',
         input: { riskScore: 30, country: 'US', amount: 150000 },
-        expectedDecision: 'manual_review' as const,
+        expectedDecision: 'manual_review',
         expectedReasonContains: 'Amount exceeds',
       },
       {
-        version: 'v2' as const,
+        version: 'v2',
         input: { riskScore: 30, country: 'US', velocity: 15 },
-        expectedDecision: 'manual_review' as const,
+        expectedDecision: 'manual_review',
         expectedReasonContains: 'High transaction velocity',
       },
       {
-        version: 'v2' as const,
+        version: 'v2',
         input: { riskScore: 30, country: 'XX' },
-        expectedDecision: 'deny' as const,
+        expectedDecision: 'deny',
         expectedReasonContains: 'Restricted country: XX',
       },
-    ])(
+    ] satisfies Array<{
+      version: 'v1' | 'v2';
+      input: KycInputWithoutVersion;
+      expectedDecision: 'approve' | 'manual_review' | 'deny';
+      expectedReasonContains: string;
+    }>)(
       '$version: input $input should produce $expectedDecision with reason containing "$expectedReasonContains"',
       ({ version, input, expectedDecision, expectedReasonContains }) => {
         useFeatureFlags.setState({ kycVersion: version });
@@ -120,7 +128,7 @@ describe('useKycEngine', () => {
 
         expect(result.current.version).toBe(version);
 
-        const kycResult = result.current.evaluate(input as KycInputWithoutVersion);
+        const kycResult = result.current.evaluate(input);
 
         expect(kycResult.decision).toBe(expectedDecision);
         expect(kycResult.reasons.some(r => r.includes(expectedReasonContains))).toBe(true);

@@ -162,18 +162,27 @@ class ZombieArchitectureAnalyzer {
         // Check for API calls in components
         const hasApiCalls = /fetchTransactions|approveKycDecision|requestKycDocuments|holdKycDecision/.test(content);
         
-        // Views are allowed to have brains (they're brain boundaries)
-        // Hook files are brains by design
-        // Legacy components are excluded (they use different patterns)
+        // Views are brain boundaries - they SHOULD have brains (expected, not a violation)
+        // Hook files are brains by design - they ARE brains
+        // Legacy components are excluded - they're meant to be wrapped by other components
         // Handle both forward and backslash paths (Windows vs Unix)
         const normalizedPath = component.path.replace(/\\/g, '/');
         
         // A view is a file in /views/ that is NOT in a /components/ subdirectory
-        // Examples: views/dashboard/PaymentsOpsDashboard.tsx ✅
+        // Examples: views/dashboard/PaymentsOpsDashboard.tsx ✅ (brain boundary)
         //          views/dashboard/components/CustomerDetailsPanel.tsx ❌ (component)
-        const isView = normalizedPath.includes('/views/') && 
-                      !normalizedPath.match(/\/views\/[^/]+\/components\//);
+        // Pattern: views/... (but NOT views/.../components/...)
+        // Check if path contains /views/ but NOT /views/.../components/
+        const hasViewsPath = normalizedPath.includes('/views/');
+        const hasComponentsInViews = normalizedPath.match(/\/views\/[^/]+\/components\//);
+        const isViewBoundary = hasViewsPath && !hasComponentsInViews;
         const isLegacy = normalizedPath.includes('/legacy/');
+        
+        // Debug: Log view detection for PaymentsOpsDashboard
+        if (normalizedPath.includes('PaymentsOpsDashboard')) {
+          console.log(`[DEBUG] ${component.path} -> ${normalizedPath}`);
+          console.log(`  hasViewsPath: ${hasViewsPath}, hasComponentsInViews: ${hasComponentsInViews}, isViewBoundary: ${isViewBoundary}`);
+        }
         
         // Justified exceptions (documented in codebase):
         // - FeatureFlagsPanel: Configuration UI, reads from store but doesn't make business decisions
@@ -183,8 +192,9 @@ class ZombieArchitectureAnalyzer {
           (normalizedPath.includes('CustomerSearch') && normalizedPath.includes('/components/'));
         
         // Only flag pure UI components that have brains when they shouldn't
-        // Skip views (brain boundaries), hook files (brains by design), legacy, and justified exceptions
-        if (!isView && !isHookFile && !isLegacy && !isJustifiedException && 
+        // Skip views (brain boundaries - expected to have brains), hook files (brains by design), 
+        // legacy (excluded), and justified exceptions
+        if (!isViewBoundary && !isHookFile && !isLegacy && !isJustifiedException && 
             (hasBrainHooks || hasStoreCalls || hasApiCalls)) {
           violations.push({
             file: component.path,

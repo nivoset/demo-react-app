@@ -28,124 +28,94 @@ export interface TransactionsResponse {
 }
 
 /**
- * Mock API function for fetching transactions
- * In a real app, this would call an actual API endpoint
+ * Fetch transactions from API
+ * Uses MSW for mocking in tests
  */
 export async function fetchTransactions(
   filters: TransactionFilters = {}
 ): Promise<TransactionsResponse> {
+  const params = new URLSearchParams();
+  
+  if (filters.customerId) params.append('customerId', filters.customerId);
+  if (filters.type) params.append('type', filters.type);
+  if (filters.status) params.append('status', filters.status);
+  if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+  if (filters.dateTo) params.append('dateTo', filters.dateTo);
+  if (filters.page) params.append('page', filters.page.toString());
+  if (filters.pageSize) params.append('pageSize', filters.pageSize.toString());
+
   // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await new Promise(resolve => setTimeout(resolve, 500));
 
-  // Mock data
-  const mockTransactions: Transaction[] = [
-    {
-      id: 'T-001',
-      customerId: 'C-002',
-      customerName: 'Emily Chen',
-      amount: 1250.50,
-      currency: 'USD',
-      type: 'payment',
-      status: 'completed',
-      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      description: 'Payment for services',
-    },
-    {
-      id: 'T-002',
-      customerId: 'C-002',
-      customerName: 'Emily Chen',
-      amount: 3200.00,
-      currency: 'USD',
-      type: 'payment',
-      status: 'pending',
-      date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      description: 'Large payment',
-    },
-    {
-      id: 'T-003',
-      customerId: 'C-001',
-      customerName: 'Jacob White',
-      amount: 450.25,
-      currency: 'USD',
-      type: 'payment',
-      status: 'completed',
-      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      description: 'Regular payment',
-    },
-    {
-      id: 'T-004',
-      customerId: 'C-003',
-      customerName: 'Samir Khan',
-      amount: 890.00,
-      currency: 'USD',
-      type: 'refund',
-      status: 'completed',
-      date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-      description: 'Refund processed',
-    },
-  ];
-
-  // Apply filters
-  let filtered = mockTransactions;
-
-  if (filters.customerId) {
-    filtered = filtered.filter((t) => t.customerId === filters.customerId);
+  const response = await fetch(`/api/transactions?${params.toString()}`);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch transactions: ${response.statusText}`);
   }
 
-  if (filters.type) {
-    filtered = filtered.filter((t) => t.type === filters.type);
-  }
-
-  if (filters.status) {
-    filtered = filtered.filter((t) => t.status === filters.status);
-  }
-
-  if (filters.dateFrom) {
-    const fromDate = new Date(filters.dateFrom);
-    filtered = filtered.filter((t) => new Date(t.date) >= fromDate);
-  }
-
-  if (filters.dateTo) {
-    const toDate = new Date(filters.dateTo);
-    filtered = filtered.filter((t) => new Date(t.date) <= toDate);
-  }
-
-  // Pagination
-  const page = filters.page || 1;
-  const pageSize = filters.pageSize || 10;
-  const start = (page - 1) * pageSize;
-  const end = start + pageSize;
-  const paginated = filtered.slice(start, end);
-
-  return {
-    transactions: paginated,
-    total: filtered.length,
-    page,
-    pageSize,
-  };
+  return response.json();
 }
 
 /**
- * Mock API function for approving a KYC decision
+ * Approve a KYC decision
+ * Uses MSW for mocking in tests
  */
 export async function approveKycDecision(customerId: string): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  const response = await fetch(`/api/kyc/approve/${customerId}`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.error || `Failed to approve KYC: ${response.statusText}`);
+  }
+
+  await response.json();
   console.log(`KYC approved for customer ${customerId}`);
 }
 
 /**
- * Mock API function for requesting documents
+ * Request KYC documents
+ * Uses MSW for mocking in tests
  */
 export async function requestKycDocuments(customerId: string): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  const response = await fetch(`/api/kyc/request-documents/${customerId}`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.error || `Failed to request documents: ${response.statusText}`);
+  }
+
+  await response.json();
   console.log(`Documents requested for customer ${customerId}`);
 }
 
 /**
- * Mock API function for placing a hold
+ * Hold a KYC decision
+ * Uses MSW for mocking in tests
  */
 export async function holdKycDecision(customerId: string): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  const response = await fetch(`/api/kyc/hold/${customerId}`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.error || `Failed to hold KYC: ${response.statusText}`);
+  }
+
+  await response.json();
   console.log(`KYC decision held for customer ${customerId}`);
 }
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import {
   fetchTransactions,
   approveKycDecision,
@@ -6,16 +6,27 @@ import {
   holdKycDecision,
   type TransactionFilters,
 } from './transactionsApi';
+import { server, happyPathHandlers } from '../test/test-utils';
 
 describe('transactionsApi', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
+  beforeAll(() => {
+    server.listen();
+    server.use(...happyPathHandlers);
   });
 
   afterEach(() => {
+    server.resetHandlers();
     vi.clearAllTimers();
     vi.useRealTimers();
     vi.clearAllMocks();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+  beforeEach(() => {
+    vi.useFakeTimers();
   });
 
   describe('fetchTransactions', () => {

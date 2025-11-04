@@ -6,21 +6,28 @@ Welcome to the Zombie React Architecture documentation for the Payments Operatio
 
 ### 🎯 Start Here
 
-1. **[Quick Reference](./QUICK_REFERENCE.md)** - Fast lookup for the 8 rules and patterns
+1. **[Codebase Walkthrough](./CODEBASE_WALKTHROUGH.md)** - Step-by-step architecture explanation
+   - Entry point to final composition
+   - Why each design decision was made
+   - How Single Responsibility Principle is applied
+   - Who changes what (CFO, COO, CTO, Designers, Product)
+   - Design decision flows and examples
+
+2. **[Quick Reference](./QUICK_REFERENCE.md)** - Fast lookup for the 8 rules and patterns
    - Core principles
    - Navigation patterns
    - Component classification
    - Common violations
    - Quick checklist
 
-2. **[Codebase Map](./CODEBASE_MAP.md)** - Visual navigation guide
+3. **[Codebase Map](./CODEBASE_MAP.md)** - Visual navigation guide
    - Directory structure
    - Component classification
    - Data flow diagrams
    - 3-click navigation examples
    - Health indicators
 
-3. **[Architecture Explanation](./ZOMBIE_ARCHITECTURE_EXPLANATION.md)** - Deep dive
+4. **[Architecture Explanation](./ZOMBIE_ARCHITECTURE_EXPLANATION.md)** - Deep dive
    - Rule-by-rule analysis
    - Implementation details
    - Architectural decisions
@@ -28,7 +35,7 @@ Welcome to the Zombie React Architecture documentation for the Payments Operatio
 
 ### 📊 Analysis Tools
 
-4. **[Automated Report](../ZOMBIE_ARCHITECTURE_REPORT.md)** - Generated analysis
+5. **[Automated Report](../ZOMBIE_ARCHITECTURE_REPORT.md)** - Generated analysis
    - Run: `npm run analyze:zombie`
    - Rule compliance status
    - Violations and warnings
@@ -38,9 +45,10 @@ Welcome to the Zombie React Architecture documentation for the Payments Operatio
 
 ### Understanding the Codebase
 
-1. **Read the Quick Reference** - Get familiar with the 8 rules
-2. **Check the Codebase Map** - See how everything connects
-3. **Review Architecture Explanation** - Understand the decisions
+1. **Read the Codebase Walkthrough** - Step-by-step explanation of architecture and design decisions
+2. **Read the Quick Reference** - Get familiar with the 8 rules
+3. **Check the Codebase Map** - See how everything connects
+4. **Review Architecture Explanation** - Understand the decisions
 
 ### Running Analysis
 

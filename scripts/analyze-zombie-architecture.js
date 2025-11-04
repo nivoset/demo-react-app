@@ -58,6 +58,14 @@ class ZombieArchitectureAnalyzer {
             this.scanDirectory(fullPath, relPath);
           }
         } else if (entry.isFile() && /\.(ts|tsx|js|jsx)$/.test(entry.name)) {
+          // Skip test files
+          if (entry.name.includes('.test.') || 
+              entry.name.includes('.spec.') ||
+              relPath.includes('__tests__') ||
+              relPath.includes('/test/')) {
+            continue;
+          }
+          
           const fileInfo = {
             path: relPath,
             fullPath,
@@ -113,7 +121,25 @@ class ZombieArchitectureAnalyzer {
     
     for (const component of this.components) {
       try {
+        // Skip test files
+        if (component.name.includes('.test.') || 
+            component.name.includes('.spec.') ||
+            component.path.includes('__tests__') ||
+            component.path.includes('/test/')) {
+          continue;
+        }
+        
         const content = readFileSync(component.fullPath, 'utf-8');
+        
+        // Skip hook files - hooks ARE brains by design
+        const isHookFile = component.name.startsWith('use') && 
+                          (component.path.includes('/logic/') || 
+                           component.path.includes('/state/') ||
+                           /export\s+(function|const)\s+use\w+/.test(content));
+        
+        if (isHookFile) {
+          continue;
+        }
         
         // Check for hooks that indicate brains
         const brainHooks = [
@@ -136,11 +162,15 @@ class ZombieArchitectureAnalyzer {
         // Check for API calls in components
         const hasApiCalls = /fetchTransactions|approveKycDecision|requestKycDocuments|holdKycDecision/.test(content);
         
-        // Views are allowed to have brains, but components should be pure
-        const isView = component.path.includes('/views/') && 
-                      !component.path.includes('/components/');
+        // Views are allowed to have brains (they're brain boundaries)
+        // Hook files are brains by design
+        // Handle both forward and backslash paths (Windows vs Unix)
+        const normalizedPath = component.path.replace(/\\/g, '/');
+        const isView = normalizedPath.includes('/views/') && 
+                      !normalizedPath.includes('/components/');
         
-        if (!isView && (hasBrainHooks || hasStoreCalls || hasApiCalls)) {
+        // Only flag pure UI components that have brains when they shouldn't
+        if (!isView && !isHookFile && (hasBrainHooks || hasStoreCalls || hasApiCalls)) {
           violations.push({
             file: component.path,
             reason: 'Component has brains (hooks, store calls, or API calls)',
@@ -367,18 +397,24 @@ class ZombieArchitectureAnalyzer {
     
     for (const file of this.files) {
       try {
+        // Skip test files (already excluded at scan level, but double-check)
+        if (file.name.includes('.test.') || 
+            file.name.includes('.spec.') ||
+            file.path.includes('__tests__') ||
+            file.path.includes('/test/')) {
+          continue;
+        }
+        
         const content = readFileSync(file.fullPath, 'utf-8');
         
-        // Check for console statements (excluding test files)
-        if (!file.path.includes('__tests__') && !file.path.includes('.test.')) {
-          const consoleMatches = content.match(/console\.(log|warn|error|info|debug)/g);
-          if (consoleMatches) {
-            violations.push({
-              file: file.path,
-              reason: `Contains console statements: ${consoleMatches.join(', ')}`,
-              severity: 'warning',
-            });
-          }
+        // Check for console statements
+        const consoleMatches = content.match(/console\.(log|warn|error|info|debug)/g);
+        if (consoleMatches) {
+          violations.push({
+            file: file.path,
+            reason: `Contains console statements: ${consoleMatches.join(', ')}`,
+            severity: 'warning',
+          });
         }
         
         // Check for eslint-disable comments (warnings silenced)
